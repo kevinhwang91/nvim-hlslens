@@ -215,10 +215,12 @@ function M.refresh_lens()
         winhl.delete_win_hl(winid)
         return
     end
-    if idx == bcache.idx and r_idx == bcache.r_idx and not config.calm_down then
+    if not config.calm_down and idx == bcache.idx and r_idx == bcache.r_idx and bcache.top_limit and
+        bcache.bot_limit and c_lnum >= bcache.top_limit and c_lnum <= bcache.bot_limit then
         return
     end
     bcache.idx, bcache.r_idx = idx, r_idx
+    bcache.top_limit, bcache.bot_limit = top_limit, bot_limit
 
     local idx_pos = pos_list[idx]
     local ret = utils.compare_pos(c_pos, idx_pos)
