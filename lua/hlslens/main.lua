@@ -149,7 +149,7 @@ end
 function M.enable()
     api.nvim_exec([[
         augroup HlSearchLens
-            autocmd!
+            autocmd! CmdlineLeave [/\?]
             autocmd CmdlineLeave [/\?] lua require('hlslens.main').listen_searched()
         augroup END
         ]], false)

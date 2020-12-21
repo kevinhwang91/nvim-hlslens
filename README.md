@@ -26,6 +26,8 @@ Install nvim-hlslens with your favorite plugin manager! For instance: [Vim-plug]
 Plug 'kevinhwang91/nvim-hlslens'
 ```
 
+> The default branch is main, please upgrade vim-plug if you encounter any installation issues.
+
 ### Minimal configuration
 
 ```vim
