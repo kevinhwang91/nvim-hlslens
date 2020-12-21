@@ -215,8 +215,11 @@ function M.refresh_lens()
         winhl.delete_win_hl(winid)
         return
     end
-    if not config.calm_down and idx == bcache.idx and r_idx == bcache.r_idx and bcache.top_limit and
-        bcache.bot_limit and c_lnum >= bcache.top_limit and c_lnum <= bcache.bot_limit then
+
+    local hit_cache = idx == bcache.idx and r_idx == bcache.r_idx and bcache.top_limit and
+                          bcache.bot_limit and c_lnum >= bcache.top_limit and c_lnum <=
+                          bcache.bot_limit
+    if hit_cache and not config.calm_down then
         return
     end
     bcache.idx, bcache.r_idx = idx, r_idx
@@ -233,12 +236,16 @@ function M.refresh_lens()
         idx_pos_end = fn.searchpos(pattern, 'cen')
     end
 
-    if config.calm_down and (ret < 0 or utils.compare_pos(c_pos, idx_pos_end) > 0) then
-        vim.defer_fn(function()
-            cmd('nohlsearch')
-            reset()
-        end, 0)
-        return
+    if config.calm_down then
+        if ret < 0 or utils.compare_pos(c_pos, idx_pos_end) > 0 then
+            vim.defer_fn(function()
+                cmd('nohlsearch')
+                reset()
+            end, 0)
+            return
+        elseif hit_cache then
+            return
+        end
     end
     winhl.add_hl(winid, idx_pos, idx_pos_end)
 
