@@ -12,6 +12,7 @@ local config = require('hlslens').get_config()
 local ns
 local hl_off
 local bufs
+local last_fw
 
 local function double_check_hloff()
     if vim.v.hlsearch == 0 then
@@ -138,6 +139,7 @@ end
 local function init()
     ns = vtext.create_namespace()
     hl_off = false
+    last_fw = vim.v.searchforward
     bufs = {}
 end
 
@@ -219,11 +221,12 @@ function M.refresh_lens()
     local hit_cache = idx == bcache.idx and r_idx == bcache.r_idx and bcache.top_limit and
                           bcache.bot_limit and c_lnum >= bcache.top_limit and c_lnum <=
                           bcache.bot_limit
-    if hit_cache and not config.calm_down then
+    if hit_cache and not config.calm_down and vim.v.searchforward == last_fw then
         return
     end
     bcache.idx, bcache.r_idx = idx, r_idx
     bcache.top_limit, bcache.bot_limit = top_limit, bot_limit
+    last_fw = vim.v.searchforward
 
     local idx_pos = pos_list[idx]
     local ret = utils.compare_pos(c_pos, idx_pos)
