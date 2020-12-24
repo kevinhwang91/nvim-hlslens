@@ -132,8 +132,8 @@ require('hlslens').setup({
                 text = string.format('[%d/%d]', idx, count)
             end
             chunks = {{' ', 'Ignore'}, {text, 'HlSearchLensCur'}}
+            vim.api.nvim_buf_clear_namespace(0, hls_ns, lnum - 1, lnum)
         end
-        vim.api.nvim_buf_clear_namespace(0, -1, lnum - 1, lnum)
         vim.api.nvim_buf_set_extmark(0, hls_ns, lnum - 1, 0, {virt_text = chunks})
     end
 })
@@ -184,8 +184,8 @@ local override_line_lens = function(lnum, loc, idx, r_idx, count, hls_ns)
     else
         text = string.format('[%d/%d]', idx, count)
         chunks = {{' ', 'Ignore'}, {text, 'HlSearchLensCur'}}
+        vim.api.nvim_buf_clear_namespace(0, hls_ns, lnum - 1, lnum)
     end
-    vim.api.nvim_buf_clear_namespace(0, -1, lnum - 1, lnum)
     vim.api.nvim_buf_set_extmark(0, hls_ns, lnum - 1, 0, {virt_text = chunks})
 end
 
@@ -201,7 +201,6 @@ function M.vmlens_start()
         hlslens.disable()
     end
     hlslens.start()
-
 end
 
 function M.vmlens_exit()
@@ -218,6 +217,12 @@ end
 
 return M
 ```
+
+## Limitation
+
+nvim-hlslens add virtual text via `nvim_buf_set_extmark` without priority, so nvim-hlslens can't
+override the existed lens added by other plugins, you can use `override_line_lens` function to get
+the existed lens' namespace, delete and set them again.
 
 ## Status
 

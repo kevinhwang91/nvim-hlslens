@@ -35,8 +35,10 @@ function M.add_line_lens(lnum, loc, idx, r_idx, count, hls_ns)
             text = string.format('[%d/%d]', idx, count)
         end
         chunks = {{' ', 'Ignore'}, {text, 'HlSearchLensCur'}}
+        api.nvim_buf_clear_namespace(0, hls_ns, lnum - 1, lnum)
     end
-    api.nvim_buf_clear_namespace(0, -1, lnum - 1, lnum)
+    -- TODO For now, nvim_buf_set_extmark without priority, if you want to override lens,
+    -- please get the namespace of other plugins, delete and set them again.
     api.nvim_buf_set_extmark(0, hls_ns, lnum - 1, 0, {virt_text = chunks})
 end
 
