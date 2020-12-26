@@ -37,9 +37,12 @@ function M.add_line_lens(lnum, loc, idx, r_idx, count, hls_ns)
         chunks = {{' ', 'Ignore'}, {text, 'HlSearchLensCur'}}
         api.nvim_buf_clear_namespace(0, hls_ns, lnum - 1, lnum)
     end
-    -- TODO For now, nvim_buf_set_extmark without priority, if you want to override lens,
+    -- TODO For now, nvim_buf_set_virtual_text without priority, if you want to override lens,
     -- please get the namespace of other plugins, delete and set them again.
-    api.nvim_buf_set_extmark(0, hls_ns, lnum - 1, 0, {virt_text = chunks})
+    api.nvim_buf_set_virtual_text(0, hls_ns, lnum - 1, chunks, {})
+    -- api.nvim_buf_set_extmark(0, hls_ns, lnum - 1, 0, {virt_text = chunks})
+    -- TODO api.nvim_buf_set_extmark will coredump in somecases, more fragile than
+    -- nvim_buf_set_virtual_text, but I am not interested at how to reproduce and report issue
 end
 
 function M.create_namespace()
