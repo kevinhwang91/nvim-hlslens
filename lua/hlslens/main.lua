@@ -148,16 +148,7 @@ local function reset()
     M.enable()
 end
 
-function M.enable()
-    api.nvim_exec([[
-        augroup HlSearchLens
-            autocmd! CmdlineLeave [/\?]
-            autocmd CmdlineLeave [/\?] lua require('hlslens.main').listen_searched()
-        augroup END
-        ]], false)
-end
-
-function M.disable()
+function M.clear()
     for bufnr in pairs(bufs) do
         if fn.bufexists(bufnr) == 1 then
             vtext.clear_buf(bufnr, ns)
@@ -167,6 +158,19 @@ function M.disable()
     winhl.delete_all_win_hl()
     bufs = {}
     hl_off = false
+end
+
+function M.enable()
+    api.nvim_exec([[
+        augroup HlSearchLens
+            autocmd! CmdlineLeave [/\?]
+            autocmd CmdlineLeave [/\?] lua require('hlslens.main').start()
+        augroup END
+        ]], false)
+end
+
+function M.disable()
+    M.clear()
     cmd('autocmd! HlSearchLens')
     config.started = false
 end
@@ -256,25 +260,23 @@ function M.refresh_lens()
 end
 
 function M.start()
-    if #bufs == 0 then
+    if not vim.o.hlsearch then
+        return
+    end
+    if not config.started then
         api.nvim_exec([[
         augroup HlSearchLens
             autocmd! CmdlineLeave :
             autocmd! CursorMoved,CursorMovedI *
+            autocmd! CmdlineChanged [/\?]
             autocmd CmdlineLeave : lua require('hlslens.main').listen_nohlseach()
+            autocmd CmdlineChanged [/\?] lua require('hlslens.main').clear()
             autocmd CursorMoved,CursorMovedI * lua require('hlslens.main').refresh_lens()
         augroup END
         ]], false)
+        config.started = true
     end
-    config.started = true
     vim.defer_fn(M.refresh_lens, 0)
-end
-
-function M.listen_searched()
-    if vim.v.event.abort or not vim.o.hlsearch then
-        return
-    end
-    M.start()
 end
 
 function M.listen_nohlseach()
