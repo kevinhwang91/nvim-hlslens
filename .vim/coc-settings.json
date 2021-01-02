@@ -1,7 +1,6 @@
 {
 	"languageserver": {
 		"lua": {
-			"command": "lua-language-server",
 			"filetypes": ["lua"],
 			"settings": {
 				"Lua": {
