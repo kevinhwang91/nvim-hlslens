@@ -217,8 +217,6 @@ function M.refresh_lens()
 
     local idx, r_idx = locate_pos(pos_list, c_pos, top_limit, bot_limit)
     if not idx then
-        vtext.clear_buf(0, ns)
-        winhl.delete_win_hl(winid)
         return
     end
 
