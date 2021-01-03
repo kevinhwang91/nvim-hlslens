@@ -37,7 +37,7 @@ function M.build_index(pattern)
         grep_cmd = 'vimgrepadd'
     end
 
-    ok, msg = pcall(cmd, string.format('silent noautocmd %s /%s/gj %%', grep_cmd, pattern))
+    local ok, msg = pcall(cmd, string.format('silent noautocmd %s /%s/gj %%', grep_cmd, pattern))
     if not ok then
         if msg:match('^Vim%(%a+%):E682') then
             ok, msg = pcall(cmd,
