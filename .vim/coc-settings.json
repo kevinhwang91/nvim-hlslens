@@ -1,7 +1,6 @@
 {
 	"languageserver": {
 		"lua": {
-			"filetypes": ["lua"],
 			"settings": {
 				"Lua": {
 					"runtime": {

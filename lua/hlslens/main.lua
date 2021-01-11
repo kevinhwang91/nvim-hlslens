@@ -261,6 +261,9 @@ function M.start()
     if not vim.o.hlsearch then
         return
     end
+    if vim.v.hlsearch == 0 and vim.v.event.abort then
+        return
+    end
     if not config.started then
         api.nvim_exec([[
         augroup HlSearchLens

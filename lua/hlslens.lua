@@ -23,8 +23,10 @@ function M.setup(opts)
     initialized = true
 end
 
--- return current configuration, must be called after the first setup()
 function M.get_config()
+    if not initialized then
+        M.setup()
+    end
     return config
 end
 

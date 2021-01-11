@@ -97,7 +97,7 @@ highlight default link HlSearchCur IncSearch
 2. disable(): disable hlslens, clear any context and autocmd event of hlslens
 3. start(): enable hlslens and refresh virtual text immediately
 4. setup(): when `auto_enable` = false, must manually invoke enable() or start() for enabling hlslens
-5. get_config(): return current configuration, must be called after the first setup()
+5. get_config(): return current configuration
 6. override_line_lens: override [add_line_lens](./lua/hlslens/vtext.lua)
 
 ## Advanced configuration

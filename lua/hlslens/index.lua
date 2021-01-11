@@ -33,7 +33,7 @@ function M.build_index(pattern)
         elseif offset_nr < 0 then
             cmd(string.format('silent noautocmd cnewer %d', -offset_nr))
         end
-        cmd([[noautocmd call setqflist([], "r")]])
+        cmd([[noautocmd call setqflist([], 'r')]])
         grep_cmd = 'vimgrepadd'
     end
 
