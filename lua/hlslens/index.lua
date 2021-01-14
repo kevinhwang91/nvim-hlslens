@@ -45,18 +45,18 @@ function M.build_index(pattern)
         end
     end
 
-    local pos_list = msg and {} or vim.tbl_map(function(item)
+    local pos_list = ok and vim.tbl_map(function(item)
         return {item.lnum, item.col}
-    end, fn.getqflist())
+    end, fn.getqflist()) or {}
 
-    local title = 'hlslens pattern=' .. pattern
-    fn.setqflist({}, 'r', {context = {hlslens = 1}, title = title})
+    fn.setqflist({}, 'r', {context = {hlslens = true}, title = 'hlslens pattern = ' .. pattern})
 
-    if hls_list_nr > 0 then
+    if qf_list_nr ~= 0 then
+        offset_nr = fn.getqflist({nr = 0}).nr - qf_list_nr
         if offset_nr > 0 then
-            cmd(string.format('silent noautocmd cnewer %d', offset_nr))
+            cmd(string.format('silent noautocmd colder %d', offset_nr))
         elseif offset_nr < 0 then
-            cmd(string.format('silent noautocmd colder %d', -offset_nr))
+            cmd(string.format('silent noautocmd cnewer %d', -offset_nr))
         end
     end
 
