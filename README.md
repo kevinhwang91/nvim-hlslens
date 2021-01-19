@@ -1,10 +1,30 @@
-# Hlslens
+# nvim-hlslens
 
-Hlslens helps you better glance searched information, seamlessly jump matched instances.
+nvim-hlslens helps you better glance searched information, seamlessly jump matched instances.
 
 <p align="center">
     <img width="864px" src=https://user-images.githubusercontent.com/17562139/102744299-7d386200-4394-11eb-9c86-e12e228a76e8.gif>
 </p>
+
+## Table of contents
+
+* [Features](#features)
+* [Quickstart](#quickstart)
+  * [Requirements](#requirements)
+  * [Installation](#installation)
+  * [Minimal configuration](#minimal-configuration)
+    * [3 ways to start hlslens](#3-ways-to-start-hlslens)
+    * [Stop hlslens](#stop-hlslens)
+* [Default Settings](#default-settings)
+  * [Setup](#setup)
+  * [Highlight](#highlight)
+  * [Function](#function)
+* [Advanced configuration](#advanced-configuration)
+  * [Customize virtual text](#customize-virtual-text)
+  * [Integrate with other plugins](#integrate-with-other-plugins)
+* [Limitation](#limitation)
+* [Status](#status)
+* [License](#license)
 
 ## Features
 
