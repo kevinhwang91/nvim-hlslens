@@ -25,6 +25,7 @@ function M.build_index(pattern)
     local qf_list_nr = fn.getqflist({nr = 0}).nr
     local hls_list_nr = find_hls_qfnr()
     local offset_nr = qf_list_nr - hls_list_nr
+    local grep_cmd
     if hls_list_nr == 0 then
         grep_cmd = 'vimgrep'
     else
@@ -40,8 +41,7 @@ function M.build_index(pattern)
     local ok, msg = pcall(cmd, string.format('silent noautocmd %s /%s/gj %%', grep_cmd, pattern))
     if not ok then
         if msg:match('^Vim%(%a+%):E682') then
-            ok, msg = pcall(cmd,
-                string.format('silent noautocmd %s /\\V%s/gj %%', grep_cmd, pattern))
+            ok = pcall(cmd, string.format('silent noautocmd %s /\\V%s/gj %%', grep_cmd, pattern))
         end
     end
 
@@ -52,11 +52,14 @@ function M.build_index(pattern)
     fn.setqflist({}, 'r', {context = {hlslens = true}, title = 'hlslens pattern = ' .. pattern})
 
     if qf_list_nr ~= 0 then
-        offset_nr = fn.getqflist({nr = 0}).nr - qf_list_nr
+        local now_nr = fn.getqflist({nr = 0}).nr
+        offset_nr = now_nr - qf_list_nr
         if offset_nr > 0 then
             cmd(string.format('silent noautocmd colder %d', offset_nr))
         elseif offset_nr < 0 then
             cmd(string.format('silent noautocmd cnewer %d', -offset_nr))
+        elseif offset_nr == 0 and now_nr == 10 then
+            cmd('silent noautocmd colder')
         end
     end
 

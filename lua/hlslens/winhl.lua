@@ -13,7 +13,7 @@ function M.add_hl(winid, start_p, end_p)
 
     local s_lnum, s_col = unpack(start_p)
     local e_lnum, e_col = unpack(end_p)
-    local pos = {}
+    local pos
     if e_lnum == s_lnum then
         pos = {{s_lnum, s_col, e_col - s_col + 1}}
     elseif e_lnum - s_lnum > 8 then
