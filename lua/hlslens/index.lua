@@ -18,8 +18,11 @@ function M.build_index(pattern)
         return
     end
 
-    if vim.o.smartcase and string.lower(pattern) ~= pattern then
-        pattern = '\\C' .. pattern
+    if vim.o.smartcase then
+        local pattern_chars = pattern:gsub('\\.', '')
+        if pattern_chars:lower(pattern) ~= pattern_chars then
+            pattern = '\\C' .. pattern
+        end
     end
 
     local qf_list_nr = fn.getqflist({nr = 0}).nr
