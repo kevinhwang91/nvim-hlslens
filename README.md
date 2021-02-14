@@ -23,7 +23,7 @@ nvim-hlslens helps you better glance searched information, seamlessly jump match
   * [Customize virtual text](#customize-virtual-text)
   * [Integrate with other plugins](#integrate-with-other-plugins)
 * [Limitation](#limitation)
-* [Status](#status)
+* [Feedback](#feedback)
 * [License](#license)
 
 ## Features
@@ -244,11 +244,10 @@ nvim-hlslens add virtual text via `nvim_buf_set_virtual_text` without priority, 
 can't override the existed lens added by other plugins, you can use `override_line_lens` function to
 get the existed lens' namespace, delete and set them again.
 
-## Status
+## Feedback
 
-WIP
-
-I'm moving from Vimscript to pure Lua, so things may break sometimes.
+- If you get an issue or come up with an awesome idea, don't hesitate to open an issue in github.
+- If you think this plugin is useful or cool, consider rewarding it a star.
 
 ## License
 
