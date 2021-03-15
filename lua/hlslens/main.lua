@@ -182,7 +182,7 @@ function M.refresh_lens()
     end
     local bufnr = api.nvim_get_current_buf()
     local bt = vim.bo.buftype
-    if fn.expand('%') == '' or bt == 'terminal' or bt == 'quickfix' or bt == 'prompt' then
+    if fn.expand('%') == '' or bt == 'quickfix' or bt == 'prompt' then
         return
     end
 
@@ -272,7 +272,8 @@ function M.start()
             autocmd! CmdlineChanged [/\?]
             autocmd CmdlineLeave : lua require('hlslens.main').listen_nohlseach()
             autocmd CmdlineChanged [/\?] lua require('hlslens.main').clear()
-            autocmd CursorMoved,CursorMovedI * lua require('hlslens.main').refresh_lens()
+            autocmd CursorMoved,CursorMovedI,TermLeave * lua require('hlslens.main').refresh_lens()
+            autocmd TermEnter * lua require('hlslens.main').clear()
         augroup END
         ]], false)
         config.started = true
