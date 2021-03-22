@@ -14,8 +14,14 @@ local function find_hls_qfnr()
 end
 
 function M.build_index(pattern)
-    if pattern == '' or fn.expand('%') == '' then
+    if pattern == '' then
         return
+    end
+
+    local tf
+    if fn.expand('%') == '' then
+        tf = fn.tempname()
+        cmd('f ' .. tf)
     end
 
     if vim.o.smartcase then
@@ -69,6 +75,11 @@ function M.build_index(pattern)
         elseif offset_nr == 0 and now_nr == 10 then
             cmd(string.format('%s col', err_prefix))
         end
+    end
+
+    if tf and tf ~= '' then
+        cmd('0f')
+        cmd('bw! ' .. tf)
     end
 
     return pos_list

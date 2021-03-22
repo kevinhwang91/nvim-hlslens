@@ -182,7 +182,7 @@ function M.refresh_lens()
     end
     local bufnr = api.nvim_get_current_buf()
     local bt = vim.bo.buftype
-    if fn.expand('%') == '' or bt == 'quickfix' or bt == 'prompt' then
+    if bt == 'quickfix' or bt == 'prompt' then
         return
     end
 
