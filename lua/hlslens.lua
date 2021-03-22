@@ -1,11 +1,7 @@
 local M = {}
 local initialized = false
 local api = vim.api
-local config = {
-    auto_enable = true,
-    calm_down = false,
-    override_line_lens = nil
-}
+local config = {auto_enable = true, calm_down = false, override_line_lens = nil}
 
 function M.setup(opts)
     if initialized then

@@ -78,7 +78,7 @@ function M.build_index(pattern)
     end
 
     if tf and tf ~= '' then
-        cmd('0f')
+        cmd('sil 0f')
         cmd('bw! ' .. tf)
     end
 
