@@ -268,11 +268,11 @@ function M.start()
         api.nvim_exec([[
         augroup HlSearchLens
             autocmd! CmdlineLeave :
-            autocmd! CursorMoved,CursorMovedI,TermEnter,CmdwinEnter *
+            autocmd! CursorMoved,TermLeave,TermEnter,CmdwinEnter *
             autocmd! CmdlineChanged [/\?]
             autocmd CmdlineLeave : lua require('hlslens.main').listen_nohlseach()
             autocmd CmdlineChanged [/\?] lua require('hlslens.main').clear()
-            autocmd CursorMoved,CursorMovedI,TermLeave * lua require('hlslens.main').refresh_lens()
+            autocmd CursorMoved,TermLeave * lua require('hlslens.main').refresh_lens()
             autocmd TermEnter,CmdwinEnter * lua require('hlslens.main').clear()
         augroup END
         ]], false)
