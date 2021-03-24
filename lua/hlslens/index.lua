@@ -13,8 +13,20 @@ local function find_hls_qfnr()
     return 0
 end
 
+local function valid_pat(pat)
+    if pat == '' then
+        return false
+    end
+    for g in pat:gmatch('.?/') do
+        if g ~= [[\/]] then
+            return false
+        end
+    end
+    return true
+end
+
 function M.build_index(pattern)
-    if pattern == '' then
+    if not valid_pat(pattern) then
         return
     end
 
@@ -53,6 +65,11 @@ function M.build_index(pattern)
         if msg:match('^Vim%(%a+%):E682') then
             ok = pcall(cmd, string.format('%s %s /\\V%s/gj %%', err_prefix, grep_cmd, pattern))
         end
+    end
+
+    -- don't waste the memory :)
+    if fn.getqflist({size = 0}).size > 100000 then
+        return
     end
 
     local pos_list = ok and vim.tbl_map(function(item)
