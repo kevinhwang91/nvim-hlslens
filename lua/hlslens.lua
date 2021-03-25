@@ -1,41 +1,57 @@
 local M = {}
+local cmd = vim.cmd
+local enabled
 local initialized = false
-local api = vim.api
-local config = {auto_enable = true, calm_down = false, override_line_lens = nil}
 
 function M.setup(opts)
     if initialized then
         return
     end
-    config = vim.tbl_deep_extend('force', config, opts or {})
-    if config.auto_enable then
-        api.nvim_exec([[
-        augroup HlSearchLens
-            autocmd!
-            autocmd CmdlineEnter [/\?] ++once lua require('hlslens').enable()
-        augroup END
-        ]], false)
+
+    opts = opts or {}
+
+    local auto_enable = opts.auto_enable == false and false or true
+    if auto_enable then
+        enabled = true
+        vim.cmd([[au CmdlineEnter [/\?] ++once lua require('hlslens').enable()]])
+    else
+        enabled = false
     end
+    -- M._config will become nil latter
+    M._config = opts
     initialized = true
 end
 
-function M.get_config()
-    if not initialized then
-        M.setup()
-    end
-    return config
-end
-
 function M.enable()
+    enabled = true
     require('hlslens.main').enable()
 end
 
 function M.disable()
+    enabled = false
     require('hlslens.main').disable()
 end
 
+function M.toggle()
+    if enabled then
+        M.disable()
+        cmd([[echohl WarningMsg | echo 'Disable nvim-hlslens' | echohl None]])
+    else
+        M.enable()
+        cmd([[echohl WarningMsg | echo 'Enable nvim-hlslens' | echohl None]])
+    end
+end
+
 function M.start()
-    require('hlslens.main').start()
+    if enabled then
+        require('hlslens.main').start()
+    end
+end
+
+function M.status()
+    if enabled then
+        return require('hlslens.main').status()
+    end
 end
 
 return M

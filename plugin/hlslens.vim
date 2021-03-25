@@ -9,8 +9,6 @@ endif
 
 let g:loaded_nvim_hlslens = 1
 
-highlight default link HlSearchLens WildMenu
-highlight default link HlSearchLensCur IncSearch
-highlight default link HlSearchCur IncSearch
-
 lua require('hlslens').setup()
+
+com! HlSearchLensToggle lua require('hlslens').toggle()

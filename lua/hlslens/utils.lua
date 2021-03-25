@@ -1,25 +1,24 @@
 local M = {}
+local fn = vim.fn
+local api = vim.api
+local uv = vim.loop
 
 function M.bin_search(items, e, comp)
-    if type(comp) ~= 'function' then
-        return nil, 0
-    end
+    vim.validate({items = {items, 'table'}, comp = {comp, 'function'}})
     local min, max, mid = 1, #items, 1
-    local ret = 0
-    local count = 0
+    local r = 0
     while min <= max do
         mid = math.floor((min + max) / 2)
-        ret = comp(e, items[mid])
-        if ret == 0 then
+        r = comp(items[mid], e)
+        if r == 0 then
             break
-        elseif ret == 1 then
-            min = mid + 1
-        else
+        elseif r == 1 then
             max = mid - 1
+        else
+            min = mid + 1
         end
-        count = count + 1
     end
-    return mid, ret
+    return mid, r
 end
 
 function M.compare_pos(p1, p2)
@@ -36,6 +35,96 @@ function M.compare_pos(p1, p2)
     else
         return -1
     end
+end
+
+function M.gutter_size(winid, lnum)
+    vim.validate({winid = {winid, 'number'}, lnum = {lnum, 'number', true}})
+    lnum = lnum or api.nvim_win_get_cursor(winid)[1]
+    return fn.screenpos(winid, lnum, 1).curscol - fn.win_screenpos(winid)[2]
+end
+
+function M.hl_attrs(hlgroup)
+    vim.validate({hlgroup = {hlgroup, 'string'}})
+    local attr_dict = {
+        'bold', 'standout', 'underline', 'undercurl', 'italic', 'reverse', 'strikethrough'
+    }
+    local t = {}
+    local hl2tbl = function(gui)
+        local ok, hl = pcall(api.nvim_get_hl_by_name, hlgroup, gui)
+        if not ok then
+            return
+        end
+        local fg, bg, color_fmt = hl.foreground, hl.background, gui and '#%x' or '%s'
+        if fg then
+            t[gui and 'guifg' or 'ctermfg'] = color_fmt:format(fg)
+        end
+        if bg then
+            t[gui and 'guibg' or 'ctermbg'] = color_fmt:format(bg)
+        end
+        hl.foreground, hl.background = nil, nil
+        local attrs = {}
+        for attr in pairs(hl) do
+            if vim.tbl_contains(attr_dict, attr) then
+                table.insert(attrs, attr)
+            end
+        end
+        t[gui and 'gui' or 'cterm'] = #attrs > 0 and attrs or nil
+    end
+    hl2tbl(true)
+    hl2tbl(false)
+    return t
+end
+
+function M.matchaddpos(hlgroup, plist, prior, winid)
+    vim.validate({
+        hlgroup = {hlgroup, 'string'},
+        plist = {plist, 'table'},
+        prior = {prior, 'number', true},
+        winid = {winid, 'number'}
+    })
+    prior = prior or 10
+
+    local ids = {}
+    local l = {}
+    for i, p in ipairs(plist) do
+        table.insert(l, p)
+        if i % 8 == 0 then
+            table.insert(ids, fn.matchaddpos(hlgroup, l, prior, -1, {window = winid}))
+            l = {}
+        end
+    end
+    if #l > 0 then
+        table.insert(ids, fn.matchaddpos(hlgroup, l, prior, -1, {window = winid}))
+    end
+    return ids
+end
+
+function M.killable_defer(timer, func, delay)
+    vim.validate({
+        timer = {timer, 'userdata', true},
+        func = {func, 'function'},
+        delay = {delay, 'number'}
+    })
+    if timer and timer:has_ref() then
+        timer:stop()
+        if not timer:is_closing() then
+            timer:close()
+        end
+    end
+    timer = uv.new_timer()
+    timer:start(delay, 0, function()
+        vim.schedule(function()
+            if not timer:has_ref() then
+                return
+            end
+            timer:stop()
+            if not timer:is_closing() then
+                timer:close()
+            end
+            func()
+        end)
+    end)
+    return timer
 end
 
 return M
