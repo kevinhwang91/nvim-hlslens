@@ -1,6 +1,6 @@
 # nvim-hlslens
 
-nvim-hlslens helps you better glance searched information, seamlessly jump matched instances.
+nvim-hlslens helps you better glance at matched information, seamlessly jump between matched instances.
 
 <p align="center">
     <img width="864px" src=https://user-images.githubusercontent.com/17562139/115105257-5a0f6f00-9f90-11eb-92cf-801fe73a45fb.gif>
@@ -33,8 +33,8 @@ nvim-hlslens helps you better glance searched information, seamlessly jump match
 - Fully customizable style of virtual text
 - Display virtual text dynamicly while cursor is moving
 - Clear highlighting and virtual text when cursor is out of range
-- Add virtual text for the current instance while searching
-- Thanks to asynchronous rendering, it is very fast
+- Add virtual text for the current matched instance while searching
+- Thanks to the cache and asynchronous rendering, it is very fast
 
 ## Quickstart
 
@@ -59,6 +59,7 @@ use {'kevinhwang91/nvim-hlslens'}
 ### Minimal configuration
 
 ```vim
+" vimscript
 Plug 'kevinhwang91/nvim-hlslens'
 
 noremap <silent> n <Cmd>execute('normal! ' . v:count1 . 'n')<CR>
@@ -71,22 +72,22 @@ noremap g* g*<Cmd>lua require('hlslens').start()<CR>
 noremap g# g#<Cmd>lua require('hlslens').start()<CR>
 
 " use : instead of <Cmd>
-nnoremap <silent> <leader>l :nohlsearch<CR>
+nnoremap <silent> <leader>l :noh<CR>
 ```
 
 ### Usage
 
 After using [Minimal configuration](#Minimal-configuration):
 
-Hlslens will add virtual text at the end of line if the room is enough for virtual text,
+Hlslens will add virtual text at the end of the line if the room is enough for virtual text,
 otherwise, add a floating window to overlay the statusline to display lens.
 
-You can glance the result provided by lens while searching on the fly when `incsearch` is on.
+You can glance at the result provided by lens while searching when `incsearch` is on.
 Hlslens also supports `<C-g>` and `<C-t>` to move to the next and previous match.
 
 #### 3 ways to start hlslens
 
-1. Press `/` or `?` to search text
+1. Press `/` or `?` to search text, `/s` and `/e` offsets are supported
 2. Press `n` or `N` to jump to the instance matched by last pattern
 3. Press `*`, `#`, `g*` or `g#` to search word nearest to the cursor
 
@@ -111,39 +112,39 @@ root = {
     },
     enable_incsearch = {
         description = [[When `incsearch` option is on and enable_incsearch is true, add lens
-            for the current searched instance]],
+            for the current matched instance]],
         default = true
     },
     calm_down = {
-        description = [[When cursor is out of highlighted position range and calm_down is true,
-            clear all lens]],
+        description = [[When the cursor is out of the position range of the matched instance
+            and calm_down is true, clear all lens]],
         default = false,
     },
     nearest_only = {
-        description = [[Only add lens for the nearest instance and ignore others]],
+        description = [[Only add lens for the nearest matched instance and ignore others]],
         default = false
     },
     nearest_float_when = {
-        description = [[When to open floating window for the nearest lens.
+        description = [[When to open the floating window for the nearest lens.
             'auto': floating window will be opened if room isn't enough for virtual text;
             'always': always use floating window instead of virtual text;
             'never': never use floating window for the nearest lens]],
         default = 'auto',
     },
     float_shadow_blend = {
-        description = [[Winblend of nearest floating window. `:h winbl` for more details]],
+        description = [[Winblend of the nearest floating window. `:h winbl` for more details]],
         default = 50,
     },
     virt_priority = {
-        description = [[Priority of virtual text, set it lower to overlay other virtual text.
+        description = [[Priority of virtual text, set it lower to overlay others.
         `:h nvim_buf_set_extmark` for more details]],
         default = 100,
     },
     override_lens  = {
         description = [[Hackable function for customizing the lens. If you like hacking, you
             should search `override_lens` and inspect the corresponding source code.
-            There's no guarantee that this function will not change in the future. It will be
-            listed in CHANGES file if changed.]],
+            There's no guarantee that this function will not be changed in the future. If it is
+            changed, it will be listed in the CHANGES file.]],
         default = nil
     },
 }
@@ -160,7 +161,7 @@ hi default link HlSearchFloat IncSearch
 
 1. HlSearchLensNear: highlight the nearest virtual text
 2. HlSearchLens: highlight virtual text except for the nearest one
-3. HlSearchNear: highlight the nearest text instance
+3. HlSearchNear: highlight the nearest matched instance
 4. HlSearchFloat: highlight the nearest text for the floating window
 
 ### Commands

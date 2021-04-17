@@ -15,6 +15,6 @@ CHANGES FROM 0.1.0 TO 0.2.0
 
 * add `virt_priority` option to specify the priority of `nvim_buf_set_extmark`.
 
-* add `enable_incsearch` option to display the current searched instance lens while searching.
+* add `enable_incsearch` option to display the current matched instance lens while searching.
 
-* support `/s` and `/e` offset for searching, but don't support offset number.
+* support `/s` and `/e` offsets for search, but don't support offset number.
