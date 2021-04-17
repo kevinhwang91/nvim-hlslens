@@ -3,26 +3,28 @@
 nvim-hlslens helps you better glance searched information, seamlessly jump matched instances.
 
 <p align="center">
-    <img width="864px" src=https://user-images.githubusercontent.com/17562139/102744299-7d386200-4394-11eb-9c86-e12e228a76e8.gif>
+    <img width="864px" src=https://user-images.githubusercontent.com/17562139/115101266-1c511d00-9f75-11eb-8cff-6de38c337618.gif>
 </p>
 
 ## Table of contents
 
+* [Table of contents](#table-of-contents)
 * [Features](#features)
 * [Quickstart](#quickstart)
   * [Requirements](#requirements)
   * [Installation](#installation)
   * [Minimal configuration](#minimal-configuration)
+  * [Usage](#usage)
     * [3 ways to start hlslens](#3-ways-to-start-hlslens)
     * [Stop hlslens](#stop-hlslens)
-* [Default Settings](#default-settings)
-  * [Setup](#setup)
+* [Documentation](#documentation)
+  * [Setup and description](#setup-and-description)
   * [Highlight](#highlight)
-  * [Function](#function)
+  * [Commands](#commands)
 * [Advanced configuration](#advanced-configuration)
+  * [Customize configuration](#customize-configuration)
   * [Customize virtual text](#customize-virtual-text)
   * [Integrate with other plugins](#integrate-with-other-plugins)
-* [Limitation](#limitation)
 * [Feedback](#feedback)
 * [License](#license)
 
@@ -31,6 +33,7 @@ nvim-hlslens helps you better glance searched information, seamlessly jump match
 - Fully customizable style of virtual text
 - Display virtual text dynamicly while cursor is moving
 - Clear highlighting and virtual text when cursor is out of range
+- Add virtual text for the target instance while searching
 
 ## Quickstart
 
@@ -40,13 +43,17 @@ nvim-hlslens helps you better glance searched information, seamlessly jump match
 
 ### Installation
 
-Install nvim-hlslens with your favorite plugin manager! For instance: [Vim-plug](https://github.com/junegunn/vim-plug):
+Install nvim-hlslens with [Vim-plug](https://github.com/junegunn/vim-plug):
 
 ```vim
 Plug 'kevinhwang91/nvim-hlslens'
 ```
 
-> The default branch is main, please upgrade vim-plug if you encounter any installation issues.
+Install nvim-hlslens with [Packer.nvim](https://github.com/wbthomason/packer.nvim):
+
+```lua
+use {'kevinhwang91/nvim-hlslens'}
+```
 
 ### Minimal configuration
 
@@ -66,6 +73,16 @@ noremap g# g#<Cmd>lua require('hlslens').start()<CR>
 nnoremap <silent> <leader>l :nohlsearch<CR>
 ```
 
+### Usage
+
+After using [Minimal configuration](#Minimal-configuration):
+
+Hlslens will add virtual text at the end of line if the room is enough for virtual text,
+otherwise, add a floating window to overlay the statusline to display lens.
+
+You can glance the result provided by lens while searching on the fly when `incsearch` is on.
+Hlslens also supports `<C-g>` and `<C-t>` to move to the next and previous match.
+
 #### 3 ways to start hlslens
 
 1. Press `/` or `?` to search text
@@ -76,97 +93,141 @@ nnoremap <silent> <leader>l :nohlsearch<CR>
 
 #### Stop hlslens
 
-In `CmdlineLeave` event, hlslens will listen whether `nohlsearch` is entered.
+Hlslens will observe whether `nohlsearch` command is accepted.
 
 1. Run ex command `nohlsearch`
 2. Map key to `:nohlsearch`, make sure that to use `:` instead of `<Cmd>`
 
-## Default Settings
+## Documentation
 
-### Setup
+### Setup and description
 
 ```lua
-setup({
-    -- enable hlslens after searching
-    -- type: boolean
-    auto_enable = true,
-    -- if calm_down is true, stop hlslens when cursor is out of position range
-    -- type: boolean
-    calm_down = false,
-    -- hackable function for customizing the virtual text
-    -- type: function(lnum, loc, idx, r_idx, count, hls_ns)
-    override_line_lens = nil
-})
+root = {
+    auto_enable = {
+        description = [[Enable nvim-hlslens automatically]],
+        default = true
+    },
+    enable_incsearch = {
+        description = [[When `incsearch` option is on and enable_incsearch is true, add lens
+            for the current searched instance]],
+        default = true
+    },
+    calm_down = {
+        description = [[When cursor is out of highlighted position range and calm_down is true,
+            clear all lens]],
+        default = false,
+    },
+    nearest_only = {
+        description = [[Only add lens for the nearest instance and ignore others]],
+        default = false
+    },
+    nearest_float_when = {
+        description = [[When to open floating window for the nearest lens.
+            'auto': floating window will be opened if room isn't enough for virtual text;
+            'always': always use floating window instead of virtual text;
+            'never': never use floating window for the nearest lens]],
+        default = 'auto',
+    },
+    float_shadow_blend = {
+        description = [[Winblend of nearest floating window. `:h winbl` for more details]],
+        default = 50,
+    },
+    virt_priority = {
+        description = [[Priority of virtual text, set it lower to overlay other virtual text.
+        `:h nvim_buf_set_extmark` for more details]],
+        default = 100,
+    },
+    override_lens  = {
+        description = [[Hackable function for customizing the lens. If you like hacking, you
+            should search `override_lens` and inspect the corresponding source code.
+            There's no guarantee that this function will not change in the future. It will be
+            listed in CHANGES file if changed.]],
+        default = nil
+    },
+}
 ```
 
 ### Highlight
 
 ```vim
-highlight default link HlSearchLensCur IncSearch
-highlight default link HlSearchLens WildMenu
-highlight default link HlSearchCur IncSearch
+hi default link HlSearchNear IncSearch
+hi default link HlSearchLens WildMenu
+hi default link HlSearchLensNear IncSearch
+hi default link HlSearchFloat IncSearch
 ```
 
-1. HlSearchLensCur: highlight the current or the nearest virtual text
-2. HlSearchLens: highlight virtual texts but except for `HlSearchLensCur`
-3. HlSearchCur: highlight the current or the nearest text instance
+1. HlSearchLensNear: highlight the nearest virtual text
+2. HlSearchLens: highlight virtual text except for the nearest one
+3. HlSearchNear: highlight the nearest text instance
+4. HlSearchFloat: highlight the nearest text for the floating window
 
-### Function
+### Commands
 
-1. enable(): enable hlslens, create autocmd event
-2. disable(): disable hlslens, clear any context and autocmd event of hlslens
-3. start(): enable hlslens and refresh virtual text immediately
-4. setup(): when `auto_enable` = false, must manually invoke enable() or start() for enabling hlslens
-5. get_config(): return current configuration
-6. override_line_lens: override [add_line_lens](./lua/hlslens/vtext.lua)
+- `HlSearchLensToggle`: Toggle nvim-hlslens enable/disable
 
 ## Advanced configuration
 
+### Customize configuration
+
+```lua
+-- lua
+require('hlslens').setup({
+    calm_down = true,
+    nearest_only = true,
+    nearest_float_when = 'always'
+})
+```
+
+<p align="center">
+    <img width="864px" src=https://user-images.githubusercontent.com/17562139/115060780-dd8e7900-9f1a-11eb-9fff-6593dbc10e51.gif>
+</p>
+
 ### Customize virtual text
 
-```vim
-Plug 'kevinhwang91/nvim-hlslens'
-
-" below code after `call plug#end()`, make sure 'hlslens' have been loaded in lua path
-lua <<EOF
+```lua
+-- lua
 require('hlslens').setup({
-    override_line_lens = function(lnum, loc, idx, r_idx, count, hls_ns)
+    override_lens = function(render, plist, nearest, idx, r_idx)
         local sfw = vim.v.searchforward == 1
         local indicator, text, chunks
-        local a_r_idx = math.abs(r_idx)
-        if a_r_idx > 1 then
-            indicator = string.format('%d%s', a_r_idx, sfw ~= (r_idx > 1) and '▲' or '▼')
-        elseif a_r_idx == 1 then
+        local abs_r_idx = math.abs(r_idx)
+        if abs_r_idx > 1 then
+            indicator = string.format('%d%s', abs_r_idx, sfw ~= (r_idx > 1) and '▲' or '▼')
+        elseif abs_r_idx == 1 then
             indicator = sfw ~= (r_idx == 1) and '▲' or '▼'
         else
             indicator = ''
         end
 
-        if loc ~= 'c' then
+        local lnum, col = unpack(plist[idx])
+        if nearest then
+            local cnt = #plist
+            if indicator ~= '' then
+                text = string.format('[%s %d/%d]', indicator, idx, cnt)
+            else
+                text = string.format('[%d/%d]', idx, cnt)
+            end
+            chunks = {{' ', 'Ignore'}, {text, 'HlSearchLensNear'}}
+        else
             text = string.format('[%s %d]', indicator, idx)
             chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
-        else
-            if indicator ~= '' then
-                text = string.format('[%s %d/%d]', indicator, idx, count)
-            else
-                text = string.format('[%d/%d]', idx, count)
-            end
-            chunks = {{' ', 'Ignore'}, {text, 'HlSearchLensCur'}}
-            vim.api.nvim_buf_clear_namespace(0, hls_ns, lnum - 1, lnum)
         end
-        vim.api.nvim_buf_set_virtual_text(0, hls_ns, lnum - 1, chunks, {})
+        render.set_virt(0, lnum - 1, col - 1, chunks, nearest)
     end
 })
-EOF
 ```
 
 <p align="center">
-    <img width="864px" src=https://user-images.githubusercontent.com/17562139/102747535-69dcc500-439b-11eb-9afe-f153742b196b.png>
+    <img width="864px" src=https://user-images.githubusercontent.com/17562139/115062493-fd26a100-9f1c-11eb-9305-20ef83d08e40.png>
 </p>
 
 ### Integrate with other plugins
 
 ```vim
+" vimscript
+call plug#begin('~/.config/nvim/plugged')
+
 Plug 'kevinhwang91/nvim-hlslens'
 
 " integrate with vim-asterisk
@@ -178,59 +239,51 @@ map g# <Plug>(asterisk-gz#)<Cmd>lua require('hlslens').start()<CR>
 
 " integrate with vim-visual-multi
 Plug 'mg979/vim-visual-multi'
-augroup VMlens
-    autocmd!
-    autocmd User visual_multi_start lua require('vmlens').vmlens_start()
-    autocmd User visual_multi_exit lua require('vmlens').vmlens_exit()
-augroup END
+aug VMlens
+    au!
+    au User visual_multi_start lua require('vmlens').start()
+    au User visual_multi_exit lua require('vmlens').exit()
+aug END
 
-" below code after `call plug#end()`, make sure 'hlslens' have been loaded in lua path
-lua require('hlslens').setup({calm_down = true})
+call plug#end()
 ```
 
 Add vmlens.lua under your lua path, for instance: `~/.config/nvim/lua/vmlens.lua`
 
 ```lua
-M = {}
+-- lua
+local M = {}
 local hlslens = require('hlslens')
-local hlslens_started = false
-local line_lens_bak
+local config
+local lens_backup
 
-local override_line_lens = function(lnum, loc, idx, r_idx, count, hls_ns)
+local override_lens = function(render, plist, nearest, idx, r_idx)
+    local _ = r_idx
+    local lnum, col = unpack(plist[idx])
+
     local text, chunks
-    if loc ~= 'c' then
+    if nearest then
+        text = string.format('[%d/%d]', idx, #plist)
+        chunks = {{' ', 'Ignore'}, {text, 'VM_Extend'}}
+    else
         text = string.format('[%d]', idx)
         chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
-    else
-        text = string.format('[%d/%d]', idx, count)
-        chunks = {{' ', 'Ignore'}, {text, 'HlSearchLensCur'}}
-        vim.api.nvim_buf_clear_namespace(0, hls_ns, lnum - 1, lnum)
     end
-    vim.api.nvim_buf_set_virtual_text(0, hls_ns, lnum - 1, chunks, {})
+    render.set_virt(0, lnum - 1, col - 1, chunks, nearest)
 end
 
-function M.vmlens_start()
-    if not hlslens then
-        return
+function M.start()
+    if hlslens then
+        config = require('hlslens.config')
+        lens_backup = config.override_lens
+        config.override_lens = override_lens
+        hlslens.start()
     end
-    local config = hlslens.get_config()
-    line_lens_bak = config.override_line_lens
-    config.override_line_lens = override_line_lens
-    hlslens_started = config.started
-    if hlslens_started then
-        hlslens.disable()
-    end
-    hlslens.start()
 end
 
-function M.vmlens_exit()
-    if not hlslens then
-        return
-    end
-    local config = hlslens.get_config()
-    config.override_line_lens = line_lens_bak
-    hlslens.disable()
-    if hlslens_started then
+function M.exit()
+    if hlslens then
+        config.override_lens = lens_backup
         hlslens.start()
     end
 end
@@ -238,11 +291,9 @@ end
 return M
 ```
 
-## Limitation
-
-nvim-hlslens add virtual text via `nvim_buf_set_virtual_text` without priority, so nvim-hlslens
-can't override the existed lens added by other plugins, you can use `override_line_lens` function to
-get the existed lens' namespace, delete and set them again.
+<p align="center">
+    <img width="864px" src=https://user-images.githubusercontent.com/17562139/115060810-e41cf080-9f1a-11eb-9196-f49897f34b39.gif>
+</p>
 
 ## Feedback
 

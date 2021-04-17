@@ -1,7 +1,16 @@
 local M = {}
 
 local cmd = vim.cmd
+local api = vim.api
 local fn = vim.fn
+
+local bufs
+local cache
+
+local function setup()
+    bufs = {cnt = 0}
+    cache = {}
+end
 
 local function find_hls_qfnr()
     for i = 1, fn.getqflist({nr = '$'}).nr do
@@ -25,9 +34,50 @@ local function valid_pat(pat)
     return true
 end
 
-function M.build_index(pattern)
+function M.hit_cache(bufnr, pattern, n_idx, nr_idx)
+    local c = cache or {}
+    return bufnr == c.last_bufnr,
+        pattern == c.last_pat and n_idx == c.last_n_idx and nr_idx == c.last_nr_idx and
+            vim.v.searchforward == c.last_fw
+end
+
+function M.update_cache(bufnr, pattern, n_idx, nr_idx)
+    local c = cache
+    c.last_bufnr, c.last_pat, c.last_n_idx, c.last_nr_idx, c.last_fw = bufnr, pattern, n_idx,
+        nr_idx, vim.v.searchforward
+end
+
+function M.reset_cache()
+    cache = {}
+end
+
+function M.build(bufnr, pattern)
+    bufnr = bufnr or api.nvim_get_current_buf()
+
+    -- fast and simple way to prevent memory leaking :)
+    if bufs.cnt > 5 then
+        bufs = {cnt = 0}
+    end
+
+    local bcache = bufs[bufnr] or {}
+
+    -- can't detach buffer manually, the memory remain in c until detach
+    --
+    -- if not bcache then
+    --     api.nvim_buf_attach(bufnr, false, {
+    --         on_detach = function()
+    --             bufs[bufnr] = nil
+    --         end
+    --     })
+    --     bcache = {}
+    -- end
+    --
+    if bcache.changedtick == api.nvim_buf_get_changedtick(bufnr) and bcache.pattern == pattern then
+        return bcache.index or {}
+    end
+
     if not valid_pat(pattern) then
-        return
+        return {}
     end
 
     local tf
@@ -56,7 +106,7 @@ function M.build_index(pattern)
         elseif offset_nr < 0 then
             cmd(string.format('%s cnew %d', err_prefix, -offset_nr))
         end
-        cmd([[noautocmd call setqflist([], 'r')]])
+        cmd([[noau call setqflist([], 'r')]])
         grep_cmd = 'vimgrepadd'
     end
 
@@ -67,14 +117,13 @@ function M.build_index(pattern)
         end
     end
 
+    local plist = {}
     -- don't waste the memory :)
-    if fn.getqflist({size = 0}).size > 100000 then
-        return
+    if fn.getqflist({size = 0}).size <= 10000 then
+        plist = ok and vim.tbl_map(function(item)
+            return {item.lnum, item.col}
+        end, fn.getqflist()) or {}
     end
-
-    local pos_list = ok and vim.tbl_map(function(item)
-        return {item.lnum, item.col}
-    end, fn.getqflist()) or {}
 
     fn.setqflist({}, 'r', {context = {hlslens = true}, title = 'hlslens pattern = ' .. pattern})
 
@@ -99,7 +148,19 @@ function M.build_index(pattern)
         cmd('bw! ' .. tf)
     end
 
-    return pos_list
+    bcache = {index = plist, changedtick = api.nvim_buf_get_changedtick(bufnr), pattern = pattern}
+    if not bufs[bufnr] then
+        bufs.cnt = bufs.cnt + 1
+    end
+    bufs[bufnr] = bcache
+    return plist
 end
+
+function M.clear()
+    bufs = {cnt = 0}
+    cache = {}
+end
+
+setup()
 
 return M
