@@ -42,7 +42,8 @@ local function autocmd(initial)
                 au CmdlineLeave : lua require('hlslens.main').observe_noh()
                 au CursorMoved * lua require('hlslens.main').refresh()
                 au TermLeave,VimResized * lua require('hlslens.main').refresh(true)
-                au TermEnter,CmdwinEnter * lua require('hlslens.main').clear_lens()
+                au CmdwinEnter * lua require('hlslens.main').clear_lens()
+                au TermEnter * lua require('hlslens.main').clear_cur_lens()
             aug END
         ]], false)
     end
@@ -69,6 +70,10 @@ end
 
 function M.status()
     return status
+end
+
+function M.clear_cur_lens()
+    render.clear(true, 0, true)
 end
 
 function M.clear_lens()
@@ -102,6 +107,7 @@ function M.refresh(force)
     else
         local bt = vim.bo.bt
         if bt == 'quickfix' or bt == 'prompt' then
+            render.clear(true, nil, true)
             return
         end
     end

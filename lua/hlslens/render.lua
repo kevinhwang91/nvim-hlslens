@@ -107,10 +107,9 @@ function M.set_virt(bufnr, lnum, col, chunks, nearest)
     for _, chunk in ipairs(chunks) do
         text = text .. chunk[1]
     end
-    local width = api.nvim_win_get_width(0)
     if nearest and (nearest_float_when == 'auto' or nearest_float_when == 'always') then
         local gutter_size = utils.gutter_size(0)
-        local per_line_wid = width - gutter_size
+        local per_line_wid = api.nvim_win_get_width(0) - gutter_size
         if nearest_float_when == 'always' then
             update_floatwin(0, {ex_lnum, ex_col}, per_line_wid, gutter_size, text)
         else
@@ -187,13 +186,13 @@ function M.do_lens(plist, nearest, idx, r_idx)
     local bufnr = api.nvim_get_current_buf()
     -- extmark may cause a performance issue
     timer = utils.killable_defer(timer, function()
-        if bufnr ~= api.nvim_get_current_buf() or vim.v.hlsearch == 0 then
-            return
-        end
-        extmark.clear_buf(bufnr)
-        M.add_lens(plist, true, idx, r_idx)
-        for _, idxs in pairs(tbl_render) do
-            M.add_lens(plist, false, idxs[1], idxs[2])
+        if bufnr == api.nvim_get_current_buf() and vim.v.hlsearch == 1 and fn.win_gettype(0) ~=
+            'popup' then
+            extmark.clear_buf(bufnr)
+            M.add_lens(plist, true, idx, r_idx)
+            for _, idxs in pairs(tbl_render) do
+                M.add_lens(plist, false, idxs[1], idxs[2])
+            end
         end
     end, 50)
 end
