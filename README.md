@@ -3,7 +3,7 @@
 nvim-hlslens helps you better glance searched information, seamlessly jump matched instances.
 
 <p align="center">
-    <img width="864px" src=https://user-images.githubusercontent.com/17562139/115101266-1c511d00-9f75-11eb-8cff-6de38c337618.gif>
+    <img width="864px" src=https://user-images.githubusercontent.com/17562139/115105257-5a0f6f00-9f90-11eb-92cf-801fe73a45fb.gif>
 </p>
 
 ## Table of contents
@@ -33,7 +33,8 @@ nvim-hlslens helps you better glance searched information, seamlessly jump match
 - Fully customizable style of virtual text
 - Display virtual text dynamicly while cursor is moving
 - Clear highlighting and virtual text when cursor is out of range
-- Add virtual text for the target instance while searching
+- Add virtual text for the current instance while searching
+- Thanks to asynchronous rendering, it is very fast
 
 ## Quickstart
 
