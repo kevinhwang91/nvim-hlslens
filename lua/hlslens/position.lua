@@ -69,9 +69,9 @@ function M.nearest_idx_info(plist, pattern)
     local i_pos_e
 
     if r_idx_s == 0 then
-        i_pos_e = fn.searchpos(pattern, 'en')
+        i_pos_e = fn.searchpos(pattern, 'cen')
     elseif r_idx_s == 1 and idx > 1 then
-        i_pos_e = fn.searchpos(pattern, 'en')
+        i_pos_e = fn.searchpos(pattern, 'cen')
         -- calibrate the nearest index, because index is based on start of the position
         -- prev_i_pos_s < c_pos < i_pos_e < i_pos_s maybe happened
         -- for instance:
@@ -87,7 +87,7 @@ function M.nearest_idx_info(plist, pattern)
         end
     else
         set_cursor(i_pos_s)
-        i_pos_e = fn.searchpos(pattern, 'en')
+        i_pos_e = fn.searchpos(pattern, 'cen')
         if topl <= i_pos_s[1] then
             set_cursor(c_pos)
         else
