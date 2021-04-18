@@ -26,7 +26,7 @@ local function setup()
 end
 
 local function refresh_lens()
-    -- ^R ^]
+    -- ^R ^[
     fn.feedkeys(string.format('%c%c', 0x12, 0x1b), 'n')
 end
 
@@ -127,6 +127,9 @@ function M.search_changed()
 
     if validate_pat(pat) then
         timer = utils.killable_defer(timer, function()
+            if api.nvim_get_mode().mode ~= 'c' then
+                return
+            end
             local plist = index.build(bufnr, pat)
             if #plist > 0 then
                 render.clear(false, bufnr)
@@ -147,7 +150,6 @@ function M.search_changed()
     else
         clear_lens(bufnr)
     end
-
 end
 
 function M.search_detach()
