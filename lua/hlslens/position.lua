@@ -6,7 +6,7 @@ local fn = vim.fn
 
 local utils = require('hlslens.utils')
 
-local function nearest_index(plist, c_pos)
+local function nearest_index(plist, c_pos, topl, botl)
     local idx, r = utils.bin_search(plist, c_pos, utils.compare_pos)
     local r_idx = 0
     local idx_lnum = plist[idx][1]
@@ -18,14 +18,13 @@ local function nearest_index(plist, c_pos)
     else
         local mid_lnum = math.ceil((idx_lnum + plist[idx - r][1]) / 2) - 1
         local c_lnum = c_pos[1]
-        local topline, botline = fn.line('w0'), fn.line('w$')
 
         if r == -1 then
             local n_idx_lnum = plist[idx + 1][1]
-            if topline > idx_lnum then
+            if topl > idx_lnum then
                 idx = idx + 1
                 r_idx = 1
-            elseif botline < n_idx_lnum then
+            elseif botl < n_idx_lnum then
                 r_idx = -1
             elseif mid_lnum < c_lnum then
                 idx = idx + 1
@@ -35,9 +34,9 @@ local function nearest_index(plist, c_pos)
             end
         elseif r == 1 then
             local p_idx_lnum = plist[idx - 1][1]
-            if topline > p_idx_lnum then
+            if topl > p_idx_lnum then
                 r_idx = 1
-            elseif botline < idx_lnum then
+            elseif botl < idx_lnum then
                 idx = idx - 1
                 r_idx = -1
             elseif mid_lnum < c_lnum then
@@ -57,30 +56,43 @@ local function get_cursor()
     return {lnum, col}
 end
 
+local function set_cursor(pos)
+    return api.nvim_win_set_cursor(0, {pos[1], pos[2] - 1})
+end
+
 function M.nearest_idx_info(plist, pattern)
     local c_pos = get_cursor()
-    local idx, r_idx_s = nearest_index(plist, c_pos)
+    local topl, botl = fn.line('w0'), fn.line('w$')
+    local idx, r_idx_s = nearest_index(plist, c_pos, topl, botl)
 
-    local i_pos_s, i_pos_e = plist[idx], fn.searchpos(pattern, 'cenW')
+    local i_pos_s = plist[idx]
+    local i_pos_e
 
-    if r_idx_s >= 0 then
-        if r_idx_s == 1 and idx > 1 then
-            if utils.compare_pos(i_pos_e, i_pos_s) < 0 then
-                idx = idx - 1
-                r_idx_s = -1
-                i_pos_s = plist[idx]
-            end
+    if r_idx_s == 0 then
+        i_pos_e = fn.searchpos(pattern, 'en')
+    elseif r_idx_s == 1 and idx > 1 then
+        i_pos_e = fn.searchpos(pattern, 'en')
+        -- calibrate the nearest index, because index is based on start of the position
+        -- prev_i_pos_s < c_pos < i_pos_e < i_pos_s maybe happened
+        -- for instance:
+        --     text: 1ab|c 2abc
+        --     pattern: abc
+        --     cursor: |
+        -- index is locate at start of second 'abc', but current postion is between start of
+        -- previous index postion and end of current index position
+        if utils.compare_pos(i_pos_e, i_pos_s) < 0 then
+            idx = idx - 1
+            r_idx_s = -1
+            i_pos_s = plist[idx]
         end
     else
-        if idx == #plist then
-            if utils.compare_pos(i_pos_e, {0, 0}) == 0 then
-                i_pos_e = fn.searchpos(pattern, 'ben')
-            end
+        set_cursor(i_pos_s)
+        i_pos_e = fn.searchpos(pattern, 'en')
+        if topl <= i_pos_s[1] then
+            set_cursor(c_pos)
         else
-            local ni_pos_s = plist[idx + 1]
-            if utils.compare_pos(i_pos_e, ni_pos_s) >= 0 then
-                i_pos_e = fn.searchpos(pattern, 'ben')
-            end
+            -- winrestview is heavy
+            fn.winrestview({topline = topl, lnum = c_pos[1], col = c_pos[2] - 1})
         end
     end
 
