@@ -88,7 +88,7 @@ function M.nearest_idx_info(plist, pattern)
     else
         set_cursor(i_pos_s)
         i_pos_e = fn.searchpos(pattern, 'cen')
-        if topl <= i_pos_s[1] then
+        if topl <= i_pos_s[1] and botl >= i_pos_s[1] then
             set_cursor(c_pos)
         else
             -- winrestview is heavy
