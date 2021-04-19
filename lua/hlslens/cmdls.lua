@@ -80,7 +80,16 @@ local function jump_inc(forward)
     if plist_otf and #plist_otf > 0 then
         local inc = forward and 1 or -1
         local cnt = #plist_otf
-        index_otf = (index_otf + inc + cnt - 1) % cnt + 1
+        local idx = index_otf + inc
+        if vim.o.ws then
+            index_otf = (idx + cnt - 1) % cnt + 1
+        else
+            if idx < 1 or idx > cnt then
+                return
+            else
+                index_otf = idx
+            end
+        end
         render.clear(false, 0)
         render.add_lens(plist_otf, true, index_otf, 0)
     end
