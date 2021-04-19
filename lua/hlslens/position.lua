@@ -1,7 +1,6 @@
 -- position (1,1)-indexed
 local M = {}
 
-local api = vim.api
 local fn = vim.fn
 
 local utils = require('hlslens.utils')
@@ -50,19 +49,10 @@ local function nearest_index(plist, c_pos, topl, botl)
     return idx, r_idx
 end
 
-local function get_cursor()
-    local lnum, col = unpack(api.nvim_win_get_cursor(0))
-    col = col + 1
-    return {lnum, col}
-end
-
-local function set_cursor(pos)
-    return api.nvim_win_set_cursor(0, {pos[1], pos[2] - 1})
-end
-
 function M.nearest_idx_info(plist, pattern)
-    local c_pos = get_cursor()
-    local topl, botl = fn.line('w0'), fn.line('w$')
+    local wv = fn.winsaveview()
+    local c_pos = {wv.lnum, wv.col + 1}
+    local topl, botl = wv.topline, fn.line('w$')
     local idx, r_idx_s = nearest_index(plist, c_pos, topl, botl)
 
     local i_pos_s = plist[idx]
@@ -86,14 +76,9 @@ function M.nearest_idx_info(plist, pattern)
             i_pos_s = plist[idx]
         end
     else
-        set_cursor(i_pos_s)
+        fn.cursor(i_pos_s)
         i_pos_e = fn.searchpos(pattern, 'cen')
-        if topl <= i_pos_s[1] and botl >= i_pos_s[1] then
-            set_cursor(c_pos)
-        else
-            -- winrestview is heavy
-            fn.winrestview({topline = topl, lnum = c_pos[1], col = c_pos[2] - 1})
-        end
+        fn.winrestview(wv)
     end
 
     local r_idx_e = utils.compare_pos(i_pos_e, c_pos)

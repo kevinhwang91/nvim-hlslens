@@ -36,9 +36,8 @@ end
 
 function M.hit_cache(bufnr, pattern, n_idx, nr_idx)
     local c = cache or {}
-    return bufnr == c.last_bufnr,
-        pattern == c.last_pat and n_idx == c.last_n_idx and nr_idx == c.last_nr_idx and
-            vim.v.searchforward == c.last_fw
+    return bufnr == c.last_bufnr and pattern == c.last_pat and n_idx == c.last_n_idx and nr_idx ==
+               c.last_nr_idx and vim.v.searchforward == c.last_fw
 end
 
 function M.update_cache(bufnr, pattern, n_idx, nr_idx)

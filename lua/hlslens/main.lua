@@ -134,7 +134,8 @@ function M.refresh(force)
 
     local hit
     if not force then
-        hit = index.hit_cache(pattern, n_idx, nr_idx)
+        hit = index.hit_cache(bufnr, pattern, n_idx, nr_idx)
+        -- print('hit:', hit, os.clock() - s)
         if hit and not calm_down then
             return
         end
