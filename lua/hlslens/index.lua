@@ -46,10 +46,6 @@ function M.update_cache(bufnr, pattern, n_idx, nr_idx)
         nr_idx, vim.v.searchforward
 end
 
-function M.reset_cache()
-    cache = {}
-end
-
 function M.build(bufnr, pattern)
     bufnr = bufnr or api.nvim_get_current_buf()
 

@@ -12,6 +12,7 @@ local incsearch
 local index_otf
 local plist_otf
 local cmdl_otf
+local cmd_type
 
 local last_pat
 local last_off
@@ -49,17 +50,20 @@ local function parse_off(r_off)
     return off
 end
 
-local function split_cmdl(cmdl)
+local function split_cmdl(cmdl, cmdt)
     local pat = cmdl
     local off
     local i = 0;
     while true do
-        i = cmdl:find('/', i + 1)
+        i = cmdl:find(cmdt or '/', i + 1)
         if i == nil then
             break
         end
         if cmdl:sub(i - 1, i - 1) ~= [[\]] then
             pat = cmdl:sub(1, i - 1)
+            if pat == '' then
+                pat = fn.getreg('/')
+            end
             off = cmdl:sub(i + 1, -1)
             break
         end
@@ -67,7 +71,7 @@ local function split_cmdl(cmdl)
     return pat, off
 end
 
-local function validate_pat(pat)
+local function filter(pat)
     if #pat <= 2 then
         if #pat == 1 or pat:sub(1, 1) == [[\]] or pat == '..' then
             return false
@@ -105,6 +109,7 @@ function M.search_attach()
     end
 
     cmdl_otf = ''
+    cmd_type = vim.v.event.cmdtype
     vim.register_keystroke_callback(function(char)
         local b = char:byte(1, -1)
         -- ^G = 0x7
@@ -129,12 +134,12 @@ function M.search_changed()
         cmdl_otf = cmdl
     end
 
-    local pat = split_cmdl(cmdl)
+    local pat = split_cmdl(cmdl, cmd_type)
 
     local bufnr = api.nvim_get_current_buf()
     render.clear(true)
 
-    if validate_pat(pat) then
+    if filter(pat) then
         timer = utils.killable_defer(timer, function()
             if api.nvim_get_mode().mode ~= 'c' then
                 return
@@ -162,21 +167,21 @@ function M.search_changed()
 end
 
 function M.search_detach()
+    local cmdl = fn.getcmdline()
+    if cmdl == '' then
+        cmdl = fn.getreg('/')
+    end
+    local pat, raw_off = split_cmdl(cmdl, cmd_type)
+    last_pat, last_off = pat, parse_off(raw_off or '')
+
     if is_incsearch() then
         index_otf = nil
         plist_otf = nil
         cmdl_otf = nil
-        index.reset_cache()
+        cmd_type = nil
     end
     -- is_incsearch() may return false but callback is registered
     vim.register_keystroke_callback(nil, ns)
-
-    local cmdl = fn.getcmdline()
-    if cmdl == '' then
-        cmdl = fn.histget('/')
-    end
-    local pat, raw_off = split_cmdl(cmdl)
-    last_pat, last_off = pat, parse_off(raw_off or '')
 end
 
 function M.off(pat)
