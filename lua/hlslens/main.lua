@@ -100,16 +100,10 @@ function M.disable()
 end
 
 function M.refresh(force)
-    -- local s = os.clock()
+    -- local s = vim.loop.hrtime()
     if vim.v.hlsearch == 0 then
         reset()
         return
-    else
-        local bt = vim.bo.bt
-        if bt == 'quickfix' or bt == 'prompt' then
-            render.clear(true, nil, true)
-            return
-        end
     end
 
     local pattern = fn.getreg('/')
@@ -120,29 +114,32 @@ function M.refresh(force)
         return
     end
 
-    local p_info = position.nearest_idx_info(plist, pattern)
-    local n_idx, nr_idxs, n_pos, n_pos_e = p_info.idx, p_info.r_idxs, p_info.p_start, p_info.p_end
-    local r_start, r_end = unpack(nr_idxs)
+    local pinfo = position.nearest_idx_info(plist, pattern)
 
     local c_off = cmdls.off(pattern)
-    local nr_idx
-    if c_off == 'e' then
-        nr_idx = r_end
-    else
-        nr_idx = r_start
-    end
+
+    local nr_idx = c_off == 'e' and pinfo.r_idx_e or pinfo.r_idx_s
+    local n_idx = pinfo.idx
 
     local hit
     if not force then
         hit = index.hit_cache(bufnr, pattern, n_idx, nr_idx)
-        -- print('hit:', hit, os.clock() - s)
+        -- print('cache hit:', hit, vim.loop.hrtime() - s)
         if hit and not calm_down then
             return
         end
     end
+    index.update_cache(bufnr, pattern, n_idx, nr_idx)
+
+    -- index may be changed after updating cache, assign info again
+    local pos_e = pinfo.pos_e
+    local r_idx_e = pinfo.r_idx_e
+    local pos_s = pinfo.pos_s
+    local r_idx_s = pinfo.r_idx_s
+    n_idx, nr_idx = pinfo.idx, c_off == 'e' and r_idx_e or r_idx_s
 
     if calm_down then
-        if r_start > 0 or r_end < 0 then
+        if r_idx_s > 0 or r_idx_e < 0 then
             vim.schedule(function()
                 cmd('noh')
                 reset()
@@ -153,11 +150,9 @@ function M.refresh(force)
         end
     end
 
-    render.add_win_hl(0, n_pos, n_pos_e)
+    render.add_win_hl(0, pos_s, pos_e)
     render.do_lens(plist, c_off ~= '' and c_off ~= 's' and c_off ~= 'e', n_idx, nr_idx)
-
-    index.update_cache(bufnr, pattern, n_idx, nr_idx)
-    -- print(os.clock() - s)
+    -- print(vim.loop.hrtime() - s)
 end
 
 function M.start()

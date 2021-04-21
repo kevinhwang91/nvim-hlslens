@@ -5,11 +5,9 @@ local api = vim.api
 local fn = vim.fn
 
 local bufs
-local cache
 
 local function setup()
     bufs = {cnt = 0}
-    cache = {}
 end
 
 local function find_hls_qfnr()
@@ -35,15 +33,14 @@ local function valid_pat(pat)
 end
 
 function M.hit_cache(bufnr, pattern, n_idx, nr_idx)
-    local c = cache or {}
-    return bufnr == c.last_bufnr and pattern == c.last_pat and n_idx == c.last_n_idx and nr_idx ==
-               c.last_nr_idx and vim.v.searchforward == c.last_fw
+    local c = bufs[bufnr]
+    return c and pattern == c.pattern and n_idx == c.n_idx and nr_idx == c.nr_idx and
+               vim.v.searchforward == c.sfw
 end
 
 function M.update_cache(bufnr, pattern, n_idx, nr_idx)
-    local c = cache
-    c.last_bufnr, c.last_pat, c.last_n_idx, c.last_nr_idx, c.last_fw = bufnr, pattern, n_idx,
-        nr_idx, vim.v.searchforward
+    local c = bufs[bufnr]
+    c.pattern, c.n_idx, c.nr_idx, c.sfw = pattern, n_idx, nr_idx, vim.v.searchforward
 end
 
 function M.build(bufnr, pattern)
@@ -54,24 +51,12 @@ function M.build(bufnr, pattern)
         bufs = {cnt = 0}
     end
 
-    local bcache = bufs[bufnr] or {}
+    local c = bufs[bufnr] or {}
 
-    -- can't detach buffer manually, the memory remain in c until detach
-    --
-    -- if not bcache then
-    --     api.nvim_buf_attach(bufnr, false, {
-    --         on_detach = function()
-    --             bufs[bufnr] = nil
-    --         end
-    --     })
-    --     bcache = {}
-    -- end
-    --
-    if bcache.changedtick == api.nvim_buf_get_changedtick(bufnr) and bcache.pattern == pattern then
-        return bcache.index or {}
-    end
-
-    if not valid_pat(pattern) then
+    if c.changedtick == api.nvim_buf_get_changedtick(bufnr) and c.pattern == pattern then
+        return c.plist
+    elseif not valid_pat(pattern) or vim.bo.bt == 'quickfix' then
+        -- vim.bo.bt is not cheap
         return {}
     end
 
@@ -143,17 +128,16 @@ function M.build(bufnr, pattern)
         cmd('bw! ' .. tf)
     end
 
-    bcache = {index = plist, changedtick = api.nvim_buf_get_changedtick(bufnr), pattern = pattern}
+    c = {plist = plist, changedtick = api.nvim_buf_get_changedtick(bufnr), pattern = pattern}
     if not bufs[bufnr] then
         bufs.cnt = bufs.cnt + 1
     end
-    bufs[bufnr] = bcache
+    bufs[bufnr] = c
     return plist
 end
 
 function M.clear()
     bufs = {cnt = 0}
-    cache = {}
 end
 
 setup()
