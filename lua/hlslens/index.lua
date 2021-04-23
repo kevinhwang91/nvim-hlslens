@@ -61,7 +61,7 @@ function M.build(bufnr, pattern)
     end
 
     local tf
-    if fn.expand('%') == '' then
+    if api.nvim_buf_get_name(0) == '' then
         tf = fn.tempname()
         cmd('f ' .. tf)
     end
@@ -86,7 +86,7 @@ function M.build(bufnr, pattern)
         elseif offset_nr < 0 then
             cmd(string.format('%s cnew %d', err_prefix, -offset_nr))
         end
-        cmd([[noau call setqflist([], 'r')]])
+        cmd([[noa call setqflist([], 'r')]])
         grep_cmd = 'vimgrepadd'
     end
 
@@ -125,7 +125,7 @@ function M.build(bufnr, pattern)
 
     if tf and tf ~= '' then
         cmd('sil 0f')
-        cmd('bw! ' .. tf)
+        cmd('noa bw! ' .. tf)
     end
 
     c = {plist = plist, changedtick = api.nvim_buf_get_changedtick(bufnr), pattern = pattern}

@@ -102,7 +102,13 @@ end
 function M.refresh(force)
     -- local s = vim.loop.hrtime()
     if vim.v.hlsearch == 0 then
-        reset()
+        vim.schedule(function()
+            if vim.v.hlsearch == 0 then
+                reset()
+            else
+                M.refresh(force)
+            end
+        end)
         return
     end
 
