@@ -5,19 +5,15 @@ local api = vim.api
 local fn = vim.fn
 
 local bufs
+local hls_qf_id
 
 local function setup()
     bufs = {cnt = 0}
+    hls_qf_id = 0
 end
 
-local function find_hls_qfnr()
-    for i = 1, fn.getqflist({nr = '$'}).nr do
-        local context = fn.getqflist({nr = i, context = 0}).context
-        if type(context) == 'table' and context.hlslens then
-            return i
-        end
-    end
-    return 0
+local function get_qfnr_by_id(id)
+    return id == 0 and 0 or fn.getqflist({id = id, nr = 0}).nr
 end
 
 local function valid_pat(pat)
@@ -30,6 +26,16 @@ local function valid_pat(pat)
         end
     end
     return true
+end
+
+local function build_cache(bufnr, plist, pattern)
+    local c = bufs[bufnr] or {}
+    c = {plist = plist or {}, changedtick = api.nvim_buf_get_changedtick(bufnr), pattern = pattern}
+    if not bufs[bufnr] then
+        bufs.cnt = bufs.cnt + 1
+    end
+    bufs[bufnr] = c
+    return c
 end
 
 function M.hit_cache(bufnr, pattern, n_idx, nr_idx)
@@ -55,9 +61,12 @@ function M.build(bufnr, pattern)
 
     if c.changedtick == api.nvim_buf_get_changedtick(bufnr) and c.pattern == pattern then
         return c.plist
-    elseif not valid_pat(pattern) or vim.bo.bt == 'quickfix' then
+    else
         -- vim.bo.bt is not cheap
-        return {}
+        local bt = vim.bo.bt
+        if not valid_pat(pattern) or bt == 'quickfix' then
+            return build_cache(bufnr, {}, pattern).plist
+        end
     end
 
     local tf
@@ -73,54 +82,42 @@ function M.build(bufnr, pattern)
         end
     end
 
-    local qf_list_nr = fn.getqflist({nr = 0}).nr
-    local hls_list_nr = find_hls_qfnr()
-    local offset_nr = qf_list_nr - hls_list_nr
-    local err_prefix = 'sil noa'
+    local origin_qf_id = fn.getqflist({id = 0}).id
+    local hls_qf_nr = get_qfnr_by_id(hls_qf_id)
+
     local grep_cmd
-    if hls_list_nr == 0 then
+    if hls_qf_nr == 0 then
         grep_cmd = 'vimgrep'
     else
-        if offset_nr > 0 then
-            cmd(string.format('%s col %d', err_prefix, offset_nr))
-        elseif offset_nr < 0 then
-            cmd(string.format('%s cnew %d', err_prefix, -offset_nr))
-        end
+        cmd(string.format('sil noa %dchi', hls_qf_nr))
         cmd([[noa call setqflist([], 'r')]])
         grep_cmd = 'vimgrepadd'
     end
 
-    local ok, msg = pcall(cmd, string.format('%s %s /%s/gj %%', err_prefix, grep_cmd, pattern))
+    local ok, msg = pcall(cmd, string.format('sil noa %s /%s/gj %%', grep_cmd, pattern))
     if not ok then
         if msg:match('^Vim%(%a+%):E682') then
-            ok = pcall(cmd, string.format('%s %s /\\V%s/gj %%', err_prefix, grep_cmd, pattern))
+            ok = pcall(cmd, string.format('sil noa %s /\\V%s/gj %%', grep_cmd, pattern))
         end
     end
 
     local plist = {}
+    local hls_qf = fn.getqflist({id = 0, size = 0})
+    hls_qf_id = hls_qf.id
+
     -- don't waste the memory :)
-    if fn.getqflist({size = 0}).size <= 10000 then
+    if hls_qf.size <= 100000 then
         plist = ok and vim.tbl_map(function(item)
             return {item.lnum, item.col}
         end, fn.getqflist()) or {}
     end
 
-    fn.setqflist({}, 'r', {context = {hlslens = true}, title = 'hlslens pattern = ' .. pattern})
+    fn.setqflist({}, 'r', {title = 'hlslens pattern = ' .. pattern})
 
-    if qf_list_nr ~= 0 then
-        local qf_info = fn.getqflist({nr = 0, winid = 0})
-        local now_nr = qf_info.nr
-        if qf_info.winid ~= 0 then
-            err_prefix = 'sil'
-        end
-        offset_nr = now_nr - qf_list_nr
-        if offset_nr > 0 then
-            cmd(string.format('%s col %d', err_prefix, offset_nr))
-        elseif offset_nr < 0 then
-            cmd(string.format('%s cnew %d', err_prefix, -offset_nr))
-        elseif offset_nr == 0 and now_nr == 10 then
-            cmd(string.format('%s col', err_prefix))
-        end
+    local cur_nr = get_qfnr_by_id(origin_qf_id)
+    if cur_nr ~= 0 and hls_qf_nr ~= cur_nr then
+        local winid = fn.getqflist({winid = 0}).winid
+        cmd(string.format('sil %s %dchi', winid == 0 and 'noa' or '', cur_nr))
     end
 
     if tf and tf ~= '' then
@@ -128,12 +125,7 @@ function M.build(bufnr, pattern)
         cmd('noa bw! ' .. tf)
     end
 
-    c = {plist = plist, changedtick = api.nvim_buf_get_changedtick(bufnr), pattern = pattern}
-    if not bufs[bufnr] then
-        bufs.cnt = bufs.cnt + 1
-    end
-    bufs[bufnr] = c
-    return plist
+    return build_cache(bufnr, plist, pattern).plist
 end
 
 function M.clear()
