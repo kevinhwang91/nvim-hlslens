@@ -7,30 +7,28 @@ local utils = require('hlslens.utils')
 
 local function nearest_index(plist, c_pos, topl, botl)
     local idx, r = utils.bin_search(plist, c_pos, utils.compare_pos)
-    local r_idx = 0
-    local idx_lnum = plist[idx][1]
+    local another_idx = idx - r
+    local r_idx = r
 
-    if idx == 1 and r == 1 then
-        r_idx = 1
-    elseif idx == #plist and r == -1 then
-        r_idx = -1
-    elseif r ~= 0 then
-        local mid_lnum = math.ceil((idx_lnum + plist[idx - r][1]) / 2) - 1
+    if r ~= 0 and another_idx <= #plist and another_idx >= 1 then
+        local idx_lnum = plist[idx][1]
+        local another_idx_lnum = plist[idx - r][1]
+        local mid_lnum = math.ceil((idx_lnum + another_idx_lnum) / 2) - 1
         local c_lnum = c_pos[1]
-        if mid_lnum < c_lnum then
-            -- fn.line('w$') may be expensive while scrolling down
-            botl = botl or fn.line('w$')
-            if botl < idx_lnum then
-                r_idx = -1
-            else
+
+        -- fn.line('w$') may be expensive while scrolling down
+        topl = topl or fn.line('w0')
+        if r == -1 then
+            if topl > idx_lnum then
+                r_idx = 1
+            elseif mid_lnum < c_lnum and (botl or fn.line('w$')) >= another_idx_lnum then
                 r_idx = 1
             end
         else
-            topl = topl or fn.line('w0')
-            if topl > idx_lnum then
-                r_idx = 1
-            else
-                r_idx = -1
+            if topl <= another_idx_lnum then
+                if mid_lnum >= c_lnum or (botl or fn.line('w$')) < idx_lnum then
+                    r_idx = -1
+                end
             end
         end
         if r_idx ~= r then
