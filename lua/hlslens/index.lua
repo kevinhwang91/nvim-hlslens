@@ -89,15 +89,15 @@ function M.build(bufnr, pattern)
     if hls_qf_nr == 0 then
         grep_cmd = 'vimgrep'
     else
-        cmd(string.format('sil noa %dchi', hls_qf_nr))
+        cmd(('sil noa %dchi'):format(hls_qf_nr))
         cmd([[noa call setqflist([], 'r')]])
         grep_cmd = 'vimgrepadd'
     end
 
-    local ok, msg = pcall(cmd, string.format('sil noa %s /%s/gj %%', grep_cmd, pattern))
+    local ok, msg = pcall(cmd, ('sil noa %s /%s/gj %%'):format(grep_cmd, pattern))
     if not ok then
         if msg:match('^Vim%(%a+%):E682') then
-            ok = pcall(cmd, string.format('sil noa %s /\\V%s/gj %%', grep_cmd, pattern))
+            ok = pcall(cmd, ('sil noa %s /\\V%s/gj %%'):format(grep_cmd, pattern))
         end
     end
 
@@ -117,7 +117,7 @@ function M.build(bufnr, pattern)
     local cur_nr = get_qfnr_by_id(origin_qf_id)
     if cur_nr ~= 0 and hls_qf_nr ~= cur_nr then
         local winid = fn.getqflist({winid = 0}).winid
-        cmd(string.format('sil %s %dchi', winid == 0 and 'noa' or '', cur_nr))
+        cmd(('sil %s %dchi'):format(winid == 0 and 'noa' or '', cur_nr))
     end
 
     if tf and tf ~= '' then

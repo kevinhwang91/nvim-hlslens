@@ -28,7 +28,7 @@ end
 
 local function refresh_lens()
     -- ^R ^[
-    fn.feedkeys(string.format('%c%c', 0x12, 0x1b), 'n')
+    fn.feedkeys(('%c%c'):format(0x12, 0x1b), 'n')
 end
 
 local function clear_lens(bufnr)

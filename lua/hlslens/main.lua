@@ -176,7 +176,7 @@ end
 function M.observe_noh()
     if not vim.v.event.abort then
         local cl = vim.trim(fn.getcmdline())
-        if #cl > 2 and string.match('nohlsearch', cl) then
+        if #cl > 2 and ('nohlsearch'):match(cl) then
             vim.schedule(reset)
         end
     end

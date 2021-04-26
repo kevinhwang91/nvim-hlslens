@@ -34,8 +34,8 @@ local function setup()
     if vim.o.termguicolors then
         local tbl_hi_cmd = {'hi HlSearchFloat', 'blend=0'}
         for k, v in pairs(utils.hl_attrs('HlSearchFloat')) do
-            table.insert(tbl_hi_cmd, string.format('%s=%s', k,
-                type(v) == 'table' and table.concat(v, ',') or v))
+            table.insert(tbl_hi_cmd,
+                ('%s=%s'):format(k, type(v) == 'table' and table.concat(v, ',') or v))
         end
         cmd(table.concat(tbl_hi_cmd, ' '))
     end
@@ -54,7 +54,7 @@ local function update_floatwin(winid, pos, line_wid, gutter_size, text)
     if vim.o.termguicolors then
         local f_win, f_buf = floatwin.update(height, 0, width)
         vim.wo[f_win].winbl = float_shadow_blend
-        local padding = string.rep(' ', math.min(f_col, width - #text) - 1)
+        local padding = (' '):rep(math.min(f_col, width - #text) - 1)
         local chunks = {{padding, 'Ignore'}, {text, 'HlSearchFloat'}}
         float_virt_id = extmark.set_virt_eol(f_buf, 0, chunks, virt_priority, float_virt_id)
     else
@@ -78,7 +78,7 @@ function M.add_lens(plist, nearest, idx, r_idx)
     local indicator, text, chunks
     local abs_r_idx = math.abs(r_idx)
     if abs_r_idx > 1 then
-        indicator = string.format('%d%s', abs_r_idx, sfw ~= (r_idx > 1) and 'N' or 'n')
+        indicator = ('%d%s'):format(abs_r_idx, sfw ~= (r_idx > 1) and 'N' or 'n')
     elseif abs_r_idx == 1 then
         indicator = sfw ~= (r_idx == 1) and 'N' or 'n'
     else
@@ -89,13 +89,13 @@ function M.add_lens(plist, nearest, idx, r_idx)
     if nearest then
         local cnt = #plist
         if indicator ~= '' then
-            text = string.format('[%s %d/%d]', indicator, idx, cnt)
+            text = ('[%s %d/%d]'):format(indicator, idx, cnt)
         else
-            text = string.format('[%d/%d]', idx, cnt)
+            text = ('[%d/%d]'):format(idx, cnt)
         end
         chunks = {{' ', 'Ignore'}, {text, 'HlSearchLensNear'}}
     else
-        text = string.format('[%s %d]', indicator, idx)
+        text = ('[%s %d]'):format(indicator, idx)
         chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
     end
     M.set_virt(0, lnum - 1, col - 1, chunks, nearest)

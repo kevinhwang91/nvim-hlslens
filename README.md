@@ -195,7 +195,7 @@ require('hlslens').setup({
         local indicator, text, chunks
         local abs_r_idx = math.abs(r_idx)
         if abs_r_idx > 1 then
-            indicator = string.format('%d%s', abs_r_idx, sfw ~= (r_idx > 1) and '▲' or '▼')
+            indicator = ('%d%s'):format(abs_r_idx, sfw ~= (r_idx > 1) and '▲' or '▼')
         elseif abs_r_idx == 1 then
             indicator = sfw ~= (r_idx == 1) and '▲' or '▼'
         else
@@ -206,13 +206,13 @@ require('hlslens').setup({
         if nearest then
             local cnt = #plist
             if indicator ~= '' then
-                text = string.format('[%s %d/%d]', indicator, idx, cnt)
+                text = ('[%s %d/%d]'):format(indicator, idx, cnt)
             else
-                text = string.format('[%d/%d]', idx, cnt)
+                text = ('[%d/%d]'):format(idx, cnt)
             end
             chunks = {{' ', 'Ignore'}, {text, 'HlSearchLensNear'}}
         else
-            text = string.format('[%s %d]', indicator, idx)
+            text = ('[%s %d]'):format(indicator, idx)
             chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
         end
         render.set_virt(0, lnum - 1, col - 1, chunks, nearest)
@@ -265,10 +265,10 @@ local override_lens = function(render, plist, nearest, idx, r_idx)
 
     local text, chunks
     if nearest then
-        text = string.format('[%d/%d]', idx, #plist)
+        text = ('[%d/%d]'):format(idx, #plist)
         chunks = {{' ', 'Ignore'}, {text, 'VM_Extend'}}
     else
-        text = string.format('[%d]', idx)
+        text = ('[%d]'):format(idx)
         chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
     end
     render.set_virt(0, lnum - 1, col - 1, chunks, nearest)
