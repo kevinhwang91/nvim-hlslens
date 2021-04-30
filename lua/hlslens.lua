@@ -10,12 +10,11 @@ function M.setup(opts)
 
     opts = opts or {}
 
-    local auto_enable = opts.auto_enable == false and false or true
-    if auto_enable then
+    if opts.auto_enable == false then
+        enabled = false
+    else
         enabled = true
         vim.cmd([[au CmdlineEnter [/\?] ++once lua require('hlslens').enable()]])
-    else
-        enabled = false
     end
     -- M._config will become nil latter
     M._config = opts
