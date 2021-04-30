@@ -1,6 +1,5 @@
 local M = {}
 local api = vim.api
-local fn = vim.fn
 
 local winid
 
@@ -23,7 +22,7 @@ function M.update(row, col, width)
     }
     local bufnr
     if winid and api.nvim_win_is_valid(winid) then
-        bufnr = fn.winbufnr(winid)
+        bufnr = api.nvim_win_get_buf(winid)
         api.nvim_win_set_config(winid, layout)
     else
         bufnr = api.nvim_create_buf(false, true)
