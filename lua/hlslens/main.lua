@@ -128,7 +128,7 @@ function M.refresh(force)
     local n_idx = pinfo.idx
 
     local hit
-    if not force then
+    if not render.defer_failed() and not force then
         hit = index.hit_cache(bufnr, pattern, n_idx, nr_idx)
         -- print('cache hit:', hit, vim.loop.hrtime() - s)
         if hit and not calm_down then

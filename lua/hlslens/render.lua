@@ -18,12 +18,15 @@ local float_shadow_blend
 local float_virt_id
 
 local timer
+local defer_failed
 
 local function setup()
     virt_priority = config.virt_priority
     nearest_only = config.nearest_only
     nearest_float_when = config.nearest_float_when
     float_shadow_blend = config.float_shadow_blend
+
+    defer_failed = false
     api.nvim_exec([[
         hi default link HlSearchNear IncSearch
         hi default link HlSearchLens WildMenu
@@ -125,6 +128,12 @@ function M.set_virt(bufnr, lnum, col, chunks, nearest)
     end
 end
 
+function M.defer_failed()
+    local ret = defer_failed
+    defer_failed = false
+    return ret
+end
+
 function M.add_win_hl(winid, start_p, end_p)
     winhl.add_hl(winid, start_p, end_p, 'HlSearchNear')
 end
@@ -193,6 +202,9 @@ function M.do_lens(plist, nearest, idx, r_idx)
             for _, idxs in pairs(tbl_render) do
                 M.add_lens(plist, false, idxs[1], idxs[2])
             end
+            defer_failed = false
+        else
+            defer_failed = true
         end
     end, 50)
 end
