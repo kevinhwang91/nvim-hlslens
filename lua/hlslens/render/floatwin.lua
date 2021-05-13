@@ -25,10 +25,14 @@ function M.update(row, col, width)
         bufnr = api.nvim_win_get_buf(winid)
         api.nvim_win_set_config(winid, layout)
     else
-        bufnr = api.nvim_create_buf(false, true)
-
-        vim.bo[bufnr].bufhidden = 'wipe'
-        winid = api.nvim_open_win(bufnr, false, layout)
+        local ei = vim.o.ei
+        vim.o.ei = 'all'
+        pcall(function()
+            bufnr = api.nvim_create_buf(false, true)
+            vim.bo[bufnr].bufhidden = 'wipe'
+            winid = api.nvim_open_win(bufnr, false, layout)
+        end)
+        vim.o.ei = ei
     end
     return winid, bufnr
 end
