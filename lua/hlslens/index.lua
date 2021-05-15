@@ -29,8 +29,11 @@ local function valid_pat(pat)
 end
 
 local function build_cache(bufnr, plist, pattern)
-    local c = bufs[bufnr] or {}
-    c = {plist = plist or {}, changedtick = api.nvim_buf_get_changedtick(bufnr), pattern = pattern}
+    local c = {
+        plist = plist or {},
+        changedtick = api.nvim_buf_get_changedtick(bufnr),
+        pattern = pattern
+    }
     if not bufs[bufnr] then
         bufs.cnt = bufs.cnt + 1
     end
