@@ -59,7 +59,7 @@ function M.nearest_idx_info(plist, pattern)
                     -- cursor is locating current index positioin
                     fn.cursor(i_pos_s)
                     if r_idx_s == 1 and idx > 1 then
-                        local prev_i_pos_e = fn.searchpos(pattern, 'bcen')
+                        local prev_i_pos_e = fn.searchpos(pattern, 'ben')
                         -- calibrate the nearest index, because index is based on start of the position
                         -- c_pos <= prev_i_pos_e < i_pos_s maybe happened
                         -- for instance:
