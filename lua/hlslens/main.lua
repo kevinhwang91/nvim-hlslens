@@ -42,7 +42,6 @@ local function autocmd(initial)
                 au CmdlineLeave : lua require('hlslens.main').observe_noh()
                 au CursorMoved * lua require('hlslens.main').refresh()
                 au TermLeave,VimResized * lua require('hlslens.main').refresh(true)
-                au CmdwinEnter * lua require('hlslens.main').clear_lens()
                 au TermEnter * lua require('hlslens.main').clear_cur_lens()
             aug END
         ]], false)
@@ -114,7 +113,15 @@ function M.refresh(force)
 
     local pattern = fn.getreg('/')
     local bufnr = api.nvim_get_current_buf()
-    local plist = index.build(bufnr, pattern)
+
+    local plist
+
+    -- command line window
+    if fn.bufname() == '[Command Line]' then
+        plist = {}
+    else
+        plist = index.build(bufnr, pattern)
+    end
     if #plist == 0 then
         render.clear(true, bufnr, true)
         return
