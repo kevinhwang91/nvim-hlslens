@@ -41,7 +41,7 @@ local function autocmd(initial)
                 au CmdlineLeave [/\?] lua require('hlslens.main').cmdl_search_leave()
                 au CmdlineLeave : lua require('hlslens.main').observe_noh()
                 au CursorMoved * lua require('hlslens.main').refresh()
-                au WinEnter,TermLeave,VimResized * lua require('hlslens.main').refresh(true)
+                au WinEnter,BufWinEnter,TermLeave,VimResized * lua require('hlslens.main').refresh(true)
                 au TermEnter * lua require('hlslens.main').clear_cur_lens()
             aug END
         ]], false)
