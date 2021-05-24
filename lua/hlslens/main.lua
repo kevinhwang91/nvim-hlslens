@@ -41,7 +41,8 @@ local function autocmd(initial)
                 au CmdlineLeave [/\?] lua require('hlslens.main').cmdl_search_leave()
                 au CmdlineLeave : lua require('hlslens.main').observe_noh()
                 au CursorMoved * lua require('hlslens.main').refresh()
-                au WinEnter,BufWinEnter,TermLeave,VimResized * lua require('hlslens.main').refresh(true)
+                au WinEnter,TermLeave,VimResized * lua require('hlslens.main').refresh(true)
+                au BufWinEnter * lua require('hlslens.main').wrap_refresh()
                 au TermEnter * lua require('hlslens.main').clear_cur_lens()
             aug END
         ]], false)
@@ -59,9 +60,7 @@ end
 function M.cmdl_search_leave()
     cmdls.search_detach()
     if vim.v.event.abort then
-        vim.schedule(function()
-            M.refresh(true)
-        end)
+        M.wrap_refresh()
     else
         M.start()
     end
@@ -96,6 +95,12 @@ function M.disable()
     index.clear()
     cmd('sil! au! HlSearchLens')
     status = 'stop'
+end
+
+function M.wrap_refresh()
+    vim.schedule(function()
+        M.refresh(true)
+    end)
 end
 
 function M.refresh(force)
@@ -174,9 +179,7 @@ function M.start()
             autocmd()
             status = 'start'
         end
-        vim.schedule(function()
-            M.refresh(true)
-        end)
+        M.wrap_refresh()
     end
 end
 
