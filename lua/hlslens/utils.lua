@@ -1,6 +1,7 @@
 local M = {}
 local fn = vim.fn
 local api = vim.api
+local cmd = vim.cmd
 local uv = vim.loop
 
 function M.bin_search(items, e, comp)
@@ -125,6 +126,28 @@ function M.killable_defer(timer, func, delay)
         end)
     end)
     return timer
+end
+
+function M.win_execute(winid, func)
+    vim.validate({
+        winid = {
+            winid, function(w)
+                return w and api.nvim_win_is_valid(w)
+            end, 'a valid window'
+        },
+        func = {func, 'function'}
+    })
+
+    local cur_winid = api.nvim_get_current_win()
+    local noa_set_win = 'noa call nvim_set_current_win(%d)'
+    if cur_winid ~= winid then
+        cmd(noa_set_win:format(winid))
+    end
+    local ret = func()
+    if cur_winid ~= winid then
+        cmd(noa_set_win:format(cur_winid))
+    end
+    return ret
 end
 
 return M

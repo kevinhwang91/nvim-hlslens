@@ -5,11 +5,15 @@ local api = vim.api
 local fn = vim.fn
 
 local bufs
+local tname
 local hls_qf_id
+
+local utils = require('hlslens.utils')
 
 local function setup()
     bufs = {cnt = 0}
     hls_qf_id = 0
+    tname = fn.tempname()
 end
 
 local function get_qfnr_by_id(id)
@@ -74,7 +78,7 @@ function M.build(bufnr, pattern)
 
     local tf
     if api.nvim_buf_get_name(0) == '' then
-        tf = fn.tempname()
+        tf = tname
         cmd('f ' .. tf)
     end
 
@@ -85,10 +89,19 @@ function M.build(bufnr, pattern)
         end
     end
 
-    local origin_qf_id = fn.getqflist({id = 0}).id
+    local origin_info = fn.getqflist({id = 0, winid = 0})
+    local origin_qf_id, qf_winid = origin_info.id, origin_info.winid
+    local qf_wv
+    if qf_winid ~= 0 then
+        utils.win_execute(qf_winid, function()
+            qf_wv = fn.winsaveview()
+        end)
+    end
+
     local hls_qf_nr = get_qfnr_by_id(hls_qf_id)
 
     local grep_cmd
+    local limit = 10000
     if hls_qf_nr == 0 then
         grep_cmd = 'vimgrep'
     else
@@ -97,33 +110,40 @@ function M.build(bufnr, pattern)
         grep_cmd = 'vimgrepadd'
     end
 
-    local ok, msg = pcall(cmd, ('sil noa %s /%s/gj %%'):format(grep_cmd, pattern))
+    local ok, msg = pcall(cmd, ('sil noa %d%s /%s/gj %%'):format(limit + 1, grep_cmd, pattern))
     if not ok then
-        if msg:match('^Vim%(%a+%):E682') then
-            ok = pcall(cmd, ('sil noa %s /\\V%s/gj %%'):format(grep_cmd, pattern))
+        if msg:match(':E682:') then
+            ok = pcall(cmd, ('sil noa %d%s /\\V%s/gj %%'):format(limit + 1, grep_cmd, pattern))
         end
     end
 
     local plist = {}
     local hls_qf = fn.getqflist({id = 0, size = 0})
     hls_qf_id = hls_qf.id
-
-    -- don't waste the memory :)
-    if hls_qf.size <= 100000 then
-        plist = ok and vim.tbl_map(function(item)
-            return {item.lnum, item.col}
-        end, fn.getqflist()) or {}
+    if ok then
+        -- greater than limit will return empty table
+        if hls_qf.size <= limit then
+            plist = vim.tbl_map(function(item)
+                return {item.lnum, item.col}
+            end, fn.getqflist())
+        end
     end
-
     fn.setqflist({}, 'r', {title = 'hlslens pattern = ' .. pattern})
 
-    local cur_nr = get_qfnr_by_id(origin_qf_id)
-    if cur_nr ~= 0 and hls_qf_nr ~= cur_nr then
+    local origin_nr = get_qfnr_by_id(origin_qf_id)
+    if origin_nr ~= 0 and hls_qf_nr ~= origin_nr then
         local winid = fn.getqflist({winid = 0}).winid
-        cmd(('sil %s %dchi'):format(winid == 0 and 'noa' or '', cur_nr))
+        local au = (winid == 0 or hls_qf_nr ~= 0) and 'noa' or ''
+        cmd(('sil %s %dchi'):format(au, origin_nr))
+
+        if qf_wv then
+            utils.win_execute(qf_winid, function()
+                fn.winrestview(qf_wv)
+            end)
+        end
     end
 
-    if tf and tf ~= '' then
+    if tf then
         cmd('sil 0f')
         cmd('noa bw! ' .. tf)
     end
