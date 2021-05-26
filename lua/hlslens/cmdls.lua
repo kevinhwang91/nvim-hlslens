@@ -123,7 +123,7 @@ function M.search_attach()
 end
 
 function M.search_changed()
-    if not is_incsearch() then
+    if not is_incsearch() or fn.bufname() == '[Command Line]' then
         return
     end
 
