@@ -82,6 +82,7 @@ function M.build(bufnr, pattern)
         cmd('f ' .. tf)
     end
 
+    local raw_pat = pattern
     if vim.o.smartcase then
         local pattern_chars = pattern:gsub('\\.', '')
         if pattern_chars:lower(pattern) ~= pattern_chars then
@@ -128,7 +129,7 @@ function M.build(bufnr, pattern)
             end, fn.getqflist())
         end
     end
-    fn.setqflist({}, 'r', {title = 'hlslens pattern = ' .. pattern})
+    fn.setqflist({}, 'r', {title = 'hlslens pattern = ' .. raw_pat})
 
     local origin_nr = get_qfnr_by_id(origin_qf_id)
     if origin_nr ~= 0 and hls_qf_nr ~= origin_nr then
@@ -148,7 +149,7 @@ function M.build(bufnr, pattern)
         cmd('noa bw! ' .. tf)
     end
 
-    return build_cache(bufnr, plist, pattern).plist
+    return build_cache(bufnr, plist, raw_pat).plist
 end
 
 function M.clear()
