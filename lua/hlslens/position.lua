@@ -78,7 +78,11 @@ function M.nearest_idx_info(plist, pattern)
                         end
                     end
                     i_pos_e = fn.searchpos(pattern, 'cen')
-                    fn.winrestview(wv)
+                    if wv.topline == fn.line('w0') then
+                        fn.cursor(wv.lnum, wv.col + 1)
+                    else
+                        fn.winrestview(wv)
+                    end
                 end
                 tbl.pos_e = i_pos_e
                 return tbl.pos_e
