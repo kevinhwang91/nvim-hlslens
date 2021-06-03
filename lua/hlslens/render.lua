@@ -17,6 +17,7 @@ local float_shadow_blend
 
 local float_virt_id
 
+local gutter_size
 local timer
 local defer_failed
 
@@ -44,15 +45,20 @@ local function setup()
     end
 end
 
-local function enough_size4virt(lnum, line_wid, t_len)
-    local end_vcol = fn.virtcol({lnum, '$'}) - 1
-    local re_vcol = line_wid - (end_vcol - 1) % line_wid - 1
+local function enough_size4virt(winid, lnum, line_wid, t_len)
+    local end_vcol = utils.vcol(winid, {lnum, '$'}) - 1
+    local re_vcol
+    if end_vcol < line_wid then
+        re_vcol = line_wid - (end_vcol - 1) % line_wid - 1
+    else
+        re_vcol = 0
+    end
     return re_vcol > t_len
 end
 
-local function update_floatwin(winid, pos, line_wid, gutter_size, text)
+local function update_floatwin(winid, pos, line_wid, g_size, text)
     local width, height = api.nvim_win_get_width(winid), api.nvim_win_get_height(winid)
-    local f_col = fn.virtcol(pos) % line_wid + gutter_size - 1
+    local f_col = utils.vcol(winid, pos) % line_wid + g_size - 1
     text = vim.trim(text)
     if vim.o.termguicolors then
         local f_win, f_buf = floatwin.update(height, 0, width)
@@ -111,16 +117,16 @@ function M.set_virt(bufnr, lnum, col, chunks, nearest)
         text = text .. chunk[1]
     end
     if nearest and (nearest_float_when == 'auto' or nearest_float_when == 'always') then
-        local gutter_size = utils.gutter_size(0)
-        local per_line_wid = api.nvim_win_get_width(0) - gutter_size
+        local g_size = gutter_size or utils.gutter_size(0)
+        local per_line_wid = api.nvim_win_get_width(0) - g_size
         if nearest_float_when == 'always' then
-            update_floatwin(0, {ex_lnum, ex_col}, per_line_wid, gutter_size, text)
+            update_floatwin(0, {ex_lnum, ex_col}, per_line_wid, g_size, text)
         else
-            if enough_size4virt(ex_lnum, per_line_wid, #text) then
+            if enough_size4virt(0, ex_lnum, per_line_wid, #text) then
                 extmark.set_virt_eol(bufnr, lnum, chunks, virt_priority)
                 floatwin.close()
             else
-                update_floatwin(0, {ex_lnum, ex_col}, per_line_wid, gutter_size, text)
+                update_floatwin(0, {ex_lnum, ex_col}, per_line_wid, g_size, text)
             end
         end
     else

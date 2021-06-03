@@ -38,10 +38,26 @@ function M.compare_pos(p1, p2)
     end
 end
 
-function M.gutter_size(winid, lnum)
-    vim.validate({winid = {winid, 'number'}, lnum = {lnum, 'number', true}})
-    lnum = lnum or api.nvim_win_get_cursor(winid)[1]
-    return fn.screenpos(winid, lnum, 1).curscol - fn.win_screenpos(winid)[2]
+function M.gutter_size(winid)
+    vim.validate({winid = {winid, 'number'}})
+    local size
+    M.win_execute(winid, function()
+        local wv = fn.winsaveview()
+        api.nvim_win_set_cursor(winid, {wv.lnum, 0})
+        size = fn.wincol() - 1
+        fn.winrestview(wv)
+    end)
+    return size
+end
+
+function M.vcol(winid, pos)
+    local vcol = fn.virtcol(pos)
+    if not vim.wo[winid].wrap then
+        M.win_execute(winid, function()
+            vcol = vcol - fn.winsaveview().leftcol
+        end)
+    end
+    return vcol
 end
 
 function M.hl_attrs(hlgroup)
