@@ -150,4 +150,28 @@ function M.win_execute(winid, func)
     return ret
 end
 
+function M.keep_magic_opt(pattern)
+    if not vim.o.magic then
+        local found_atom = false
+        local i = 1
+        while i < #pattern do
+            if pattern:sub(i, i) == [[\]] then
+                local atom = pattern:sub(i + 1, i + 1):upper()
+                if atom == 'M' or atom == 'V' then
+                    found_atom = true
+                    break
+                else
+                    i = i + 2
+                end
+            else
+                break
+            end
+        end
+        if not found_atom then
+            pattern = [[\M]] .. pattern
+        end
+    end
+    return pattern
+end
+
 return M

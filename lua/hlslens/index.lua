@@ -83,6 +83,8 @@ function M.build(bufnr, pattern)
     end
 
     local raw_pat = pattern
+    -- vimgrep can't respect magic option
+    pattern = utils.keep_magic_opt(pattern)
     if vim.o.smartcase then
         local pattern_chars = pattern:gsub('\\.', '')
         if pattern_chars:lower(pattern) ~= pattern_chars then
