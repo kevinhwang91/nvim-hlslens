@@ -203,11 +203,13 @@ function M.do_lens(plist, nearest, idx, r_idx)
     timer = utils.killable_defer(timer, function()
         if bufnr == api.nvim_get_current_buf() and vim.v.hlsearch == 1 and fn.win_gettype(0) ~=
             'popup' then
+            gutter_size = utils.gutter_size(0)
             extmark.clear_buf(bufnr)
             M.add_lens(plist, true, idx, r_idx)
             for _, idxs in pairs(tbl_render) do
                 M.add_lens(plist, false, idxs[1], idxs[2])
             end
+            gutter_size = false
             defer_failed = false
         else
             defer_failed = true
