@@ -1,5 +1,6 @@
 local M = {}
 local fn = vim.fn
+local cmd = vim.cmd
 local api = vim.api
 
 local utils = require('hlslens.utils')
@@ -8,6 +9,7 @@ local index = require('hlslens.index')
 local config = require('hlslens.config')
 
 local incsearch
+local should_fold
 
 local index_otf
 local plist_otf
@@ -24,6 +26,7 @@ local function setup()
     last_off = ''
     ns = api.nvim_create_namespace('hlslens')
     incsearch = config.enable_incsearch
+    should_fold = false
 end
 
 local function refresh_lens()
@@ -94,6 +97,12 @@ local function jump_inc(forward)
                 index_otf = idx
             end
         end
+
+        if should_fold then
+            local pos = plist_otf[index_otf]
+            api.nvim_win_set_cursor(0, {pos[1], pos[2] - 1})
+            cmd('norm! zv')
+        end
         render.clear(false, 0)
         render.add_lens(plist_otf, true, index_otf, 0)
     end
@@ -106,6 +115,10 @@ end
 function M.search_attach()
     if not is_incsearch() then
         return
+    end
+
+    if vim.o.fdo:find('search') and vim.wo.foldenable then
+        should_fold = true
     end
 
     cmdl_otf = ''
@@ -153,6 +166,9 @@ function M.search_changed()
                     return
                 end
                 plist_otf, index_otf = plist, idx
+                if should_fold then
+                    cmd('norm! zv')
+                end
 
                 render.add_lens(plist, true, idx, 0)
 
@@ -174,13 +190,12 @@ function M.search_detach()
     local pat, raw_off = split_cmdl(cmdl, cmd_type)
     last_pat, last_off = pat, parse_off(raw_off or '')
 
-    if is_incsearch() then
-        index_otf = nil
-        plist_otf = nil
-        cmdl_otf = nil
-        cmd_type = nil
-    end
-    -- is_incsearch() may return false but callback is registered
+    index_otf = nil
+    plist_otf = nil
+    cmdl_otf = nil
+    cmd_type = nil
+    should_fold = false
+
     vim.register_keystroke_callback(nil, ns)
 end
 
