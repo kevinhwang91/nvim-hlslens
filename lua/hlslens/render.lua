@@ -151,10 +151,17 @@ function M.do_lens(plist, nearest, idx, r_idx)
     local tbl_render = {}
 
     if not nearest_only and not nearest then
+        local t0, b0
+        local p_pos, n_pos = plist[math.max(1, idx - 1)], plist[math.min(pos_len, idx + 1)]
+        -- TODO just relieve foldclosed behavior, can't solve the issue perfectly
+        if vim.wo.foldenable then
+            t0, b0 = math.min(p_pos[1], fn.line('w0')), math.max(n_pos[1], fn.line('w$'))
+        else
+            t0, b0 = p_pos[1], n_pos[1]
+        end
         local w_hei = api.nvim_win_get_height(0)
-        local top_limit = math.max(0, plist[math.max(1, idx - 1)][1] - w_hei + 1)
-        local bot_limit = math.min(api.nvim_buf_line_count(0),
-            plist[math.min(pos_len, idx + 1)][1] + w_hei - 1)
+        local top_limit = math.max(0, t0 - w_hei + 1)
+        local bot_limit = math.min(api.nvim_buf_line_count(0), b0 + w_hei - 1)
 
         local i_lnum, rel_idx
         local last_hl_lnum = 0
