@@ -48,10 +48,10 @@ end
 local function enough_size4virt(winid, lnum, line_wid, t_len)
     local end_vcol = utils.vcol(winid, {lnum, '$'}) - 1
     local re_vcol
-    if end_vcol < line_wid then
+    if vim.wo[winid].wrap then
         re_vcol = line_wid - (end_vcol - 1) % line_wid - 1
     else
-        re_vcol = 0
+        re_vcol = math.max(0, line_wid - end_vcol)
     end
     return re_vcol > t_len
 end
