@@ -104,7 +104,7 @@ local function jump_inc(forward)
             cmd('norm! zv')
         end
         render.clear(false, 0)
-        render.add_lens(plist_otf, true, index_otf, 0)
+        render.add_lens(0, plist_otf, true, index_otf, 0)
     end
 end
 
@@ -170,7 +170,7 @@ function M.search_changed()
                     cmd('norm! zv')
                 end
 
-                render.add_lens(plist, true, idx, 0)
+                render.add_lens(bufnr, plist, true, idx, 0)
 
                 refresh_lens()
             else

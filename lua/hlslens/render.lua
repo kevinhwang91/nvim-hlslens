@@ -74,11 +74,12 @@ local function update_floatwin(winid, pos, line_wid, g_size, text)
 end
 
 -- Add lens template, can be overrided by `override_lens`
+-- @param bufnr (number) buffer number
 -- @param plist (table) (1,1)-indexed position list
 -- @param nearest (boolean) whether nearest lens
 -- @param idx (number) nearest index in the plist
 -- @param r_idx (number) relative index, negative means before current position, positive means after
-function M.add_lens(plist, nearest, idx, r_idx)
+function M.add_lens(bufnr, plist, nearest, idx, r_idx)
     if type(config.override_lens) == 'function' then
         -- export render module for hacking :)
         return config.override_lens(M, plist, nearest, idx, r_idx)
@@ -107,7 +108,7 @@ function M.add_lens(plist, nearest, idx, r_idx)
         text = ('[%s %d]'):format(indicator, idx)
         chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
     end
-    M.set_virt(0, lnum - 1, col - 1, chunks, nearest)
+    M.set_virt(bufnr, lnum - 1, col - 1, chunks, nearest)
 end
 
 function M.set_virt(bufnr, lnum, col, chunks, nearest)
@@ -206,15 +207,17 @@ function M.do_lens(plist, nearest, idx, r_idx)
     end
 
     local bufnr = api.nvim_get_current_buf()
+    local changedtick = api.nvim_buf_get_changedtick(bufnr)
     -- extmark may cause a performance issue
     timer = utils.killable_defer(timer, function()
-        if bufnr == api.nvim_get_current_buf() and vim.v.hlsearch == 1 and fn.win_gettype(0) ~=
-            'popup' then
+        local cur_bufnr = api.nvim_get_current_buf()
+        if bufnr == cur_bufnr and changedtick == api.nvim_buf_get_changedtick(cur_bufnr) and
+            vim.v.hlsearch == 1 and fn.win_gettype(0) ~= 'popup' then
             gutter_size = utils.gutter_size(0)
             extmark.clear_buf(bufnr)
-            M.add_lens(plist, true, idx, r_idx)
+            M.add_lens(bufnr, plist, true, idx, r_idx)
             for _, idxs in pairs(tbl_render) do
-                M.add_lens(plist, false, idxs[1], idxs[2])
+                M.add_lens(bufnr, plist, false, idxs[1], idxs[2])
             end
             gutter_size = false
             defer_failed = false
