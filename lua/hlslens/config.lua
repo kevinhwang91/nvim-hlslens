@@ -1,6 +1,6 @@
 local config = {}
 
-local function setup()
+local function init()
     local hlslens = require('hlslens')
     config = vim.tbl_deep_extend('keep', hlslens._config or {}, {
         auto_enable = true,
@@ -15,6 +15,6 @@ local function setup()
     hlslens._config = nil
 end
 
-setup()
+init()
 
 return config

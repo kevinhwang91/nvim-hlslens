@@ -21,7 +21,7 @@ local last_off
 local ns
 local timer
 
-local function setup()
+local function init()
     last_pat = ''
     last_off = ''
     ns = api.nvim_create_namespace('hlslens')
@@ -206,6 +206,6 @@ function M.off(pat)
     return last_off
 end
 
-setup()
+init()
 
 return M

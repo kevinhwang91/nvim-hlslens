@@ -10,7 +10,7 @@ local hls_qf_id
 
 local utils = require('hlslens.utils')
 
-local function setup()
+local function init()
     bufs = {cnt = 0}
     hls_qf_id = 0
     tname = fn.tempname()
@@ -158,6 +158,6 @@ function M.clear()
     bufs = {cnt = 0}
 end
 
-setup()
+init()
 
 return M

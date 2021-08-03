@@ -21,19 +21,19 @@ local gutter_size
 local timer
 local defer_failed
 
-local function setup()
+local function init()
     virt_priority = config.virt_priority
     nearest_only = config.nearest_only
     nearest_float_when = config.nearest_float_when
     float_shadow_blend = config.float_shadow_blend
 
     defer_failed = false
-    api.nvim_exec([[
+    cmd([[
         hi default link HlSearchNear IncSearch
         hi default link HlSearchLens WildMenu
         hi default link HlSearchLensNear IncSearch
         hi default link HlSearchFloat IncSearch
-    ]], false)
+    ]])
 
     if vim.o.termguicolors then
         local tbl_hi_cmd = {'hi HlSearchFloat', 'blend=0'}
@@ -245,6 +245,6 @@ function M.clear_all()
     extmark.clear_all_buf()
 end
 
-setup()
+init()
 
 return M

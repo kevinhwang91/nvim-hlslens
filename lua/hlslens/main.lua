@@ -12,7 +12,7 @@ local config = require('hlslens.config')
 local status
 local calm_down
 
-local function setup()
+local function init()
     calm_down = config.calm_down
     status = 'stop'
 end
@@ -24,16 +24,16 @@ end
 
 local function autocmd(initial)
     if initial then
-        api.nvim_exec([[
+        cmd([[
             aug HlSearchLens
                 au!
                 au CmdlineEnter [/\?] lua require('hlslens.main').cmdl_search_enter()
                 au CmdlineChanged [/\?] lua require('hlslens.main').cmdl_search_changed()
                 au CmdlineLeave [/\?] lua require('hlslens.main').cmdl_search_leave()
             aug END
-        ]], false)
+        ]])
     else
-        api.nvim_exec([[
+        cmd([[
             aug HlSearchLens
                 au!
                 au CmdlineEnter [/\?] lua require('hlslens.main').cmdl_search_enter()
@@ -45,7 +45,7 @@ local function autocmd(initial)
                 au BufWinEnter * lua require('hlslens.main').wrap_refresh()
                 au TermEnter * lua require('hlslens.main').clear_cur_lens()
             aug END
-        ]], false)
+        ]])
     end
 end
 
@@ -192,6 +192,6 @@ function M.observe_noh()
     end
 end
 
-setup()
+init()
 
 return M
