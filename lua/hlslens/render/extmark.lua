@@ -13,8 +13,12 @@ function M.set_virt_eol(bufnr, lnum, chunks, priority, id)
     bufnr = bufnr == 0 and api.nvim_get_current_buf() or bufnr
     bufs[bufnr] = true
     -- id may be nil
-    return api.nvim_buf_set_extmark(bufnr, ns, lnum, -1,
-        {id = id, virt_text = chunks, priority = priority})
+    return api.nvim_buf_set_extmark(bufnr, ns, lnum, -1, {
+        id = id,
+        virt_text = chunks,
+        hl_mode = 'combine',
+        priority = priority
+    })
 end
 
 function M.clear_buf(bufnr)
