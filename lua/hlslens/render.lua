@@ -95,7 +95,7 @@ function M.add_lens(bufnr, plist, nearest, idx, r_idx)
         indicator = ''
     end
 
-    local lnum, col = unpack(plist[idx])
+    local lnum, col = unpack(plist[idx], 1, 2)
     if nearest then
         local cnt = #plist
         if indicator ~= '' then

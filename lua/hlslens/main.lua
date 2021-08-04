@@ -119,20 +119,20 @@ function M.refresh(force)
     local pattern = fn.getreg('/')
     local bufnr = api.nvim_get_current_buf()
 
-    local plist
+    local plist, plist_end
 
     -- command line window
     if fn.bufname() == '[Command Line]' then
         plist = {}
     else
-        plist = index.build(bufnr, pattern)
+        plist, plist_end = index.build(bufnr, pattern)
     end
     if #plist == 0 then
         render.clear(true, bufnr, true)
         return
     end
 
-    local pinfo = position.nearest_idx_info(plist, pattern)
+    local pinfo = position.nearest_idx_info(pattern, plist, plist_end)
 
     local c_off = cmdls.off(pattern)
 

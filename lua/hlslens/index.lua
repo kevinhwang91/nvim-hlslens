@@ -32,9 +32,10 @@ local function valid_pat(pat)
     return true
 end
 
-local function build_cache(bufnr, plist, pattern)
+local function build_cache(bufnr, pattern, plist, plist_end)
     local c = {
         plist = plist or {},
+        plist_end = plist_end,
         changedtick = api.nvim_buf_get_changedtick(bufnr),
         pattern = pattern
     }
@@ -67,12 +68,12 @@ function M.build(bufnr, pattern)
     local c = bufs[bufnr] or {}
 
     if c.changedtick == api.nvim_buf_get_changedtick(bufnr) and c.pattern == pattern then
-        return c.plist
+        return c.plist, c.plist_end
     else
         -- vim.bo.bt is not cheap
         local bt = vim.bo.bt
         if not valid_pat(pattern) or bt == 'quickfix' then
-            return build_cache(bufnr, {}, pattern).plist
+            return build_cache(bufnr, pattern, {}).plist
         end
     end
 
@@ -120,15 +121,20 @@ function M.build(bufnr, pattern)
         end
     end
 
+    local is_dev = utils.is_dev()
     local plist = {}
+    local plist_end = utils.is_dev() and {}
     local hls_qf = fn.getqflist({id = 0, size = 0})
     hls_qf_id = hls_qf.id
     if ok then
         -- greater than limit will return empty table
         if hls_qf.size <= limit then
-            plist = vim.tbl_map(function(item)
-                return {item.lnum, item.col}
-            end, fn.getqflist())
+            for _, item in ipairs(fn.getqflist()) do
+                table.insert(plist, {item.lnum, item.col})
+                if is_dev then
+                    table.insert(plist_end, {item.end_lnum, item.end_col - 1})
+                end
+            end
         end
     end
     fn.setqflist({}, 'r', {title = 'hlslens pattern = ' .. raw_pat})
@@ -151,7 +157,8 @@ function M.build(bufnr, pattern)
         cmd('noa bw! ' .. tf)
     end
 
-    return build_cache(bufnr, plist, raw_pat).plist
+    local cache = build_cache(bufnr, raw_pat, plist, plist_end)
+    return cache.plist, cache.plist_end
 end
 
 function M.clear()

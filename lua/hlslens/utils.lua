@@ -4,6 +4,16 @@ local api = vim.api
 local cmd = vim.cmd
 local uv = vim.loop
 
+M.is_dev = (function()
+    local is_dev
+    return function()
+        if is_dev == nil then
+            is_dev = fn.has('nvim-0.6') == 1
+        end
+        return is_dev
+    end
+end)()
+
 function M.bin_search(items, e, comp)
     vim.validate({items = {items, 'table'}, comp = {comp, 'function'}})
     local min, max, mid = 1, #items, 1
