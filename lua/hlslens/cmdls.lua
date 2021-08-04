@@ -153,8 +153,9 @@ function M.search_changed()
     render.clear(true)
 
     if filter(pat) then
+        local ctype = fn.getcmdtype()
         timer = utils.killable_defer(timer, function()
-            if api.nvim_get_mode().mode ~= 'c' then
+            if api.nvim_get_mode().mode ~= 'c' or ctype ~= fn.getcmdtype() then
                 return
             end
             local plist = index.build(bufnr, pat)
