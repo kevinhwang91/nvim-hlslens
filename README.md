@@ -40,7 +40,7 @@ nvim-hlslens helps you better glance at matched information, seamlessly jump bet
 
 ### Requirements
 
-- Neovim [nightly](https://github.com/neovim/neovim#install-from-source)
+- [Neovim](https://github.com/neovim/neovim) 0.5 or later
 
 ### Installation
 
