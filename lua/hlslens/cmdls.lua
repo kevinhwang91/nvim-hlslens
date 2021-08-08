@@ -5,14 +5,14 @@ local api = vim.api
 
 local utils = require('hlslens.utils')
 local render = require('hlslens.render')
-local index = require('hlslens.index')
 local config = require('hlslens.config')
+
+local DUMMY_POS = {1, 1}
 
 local incsearch
 local should_fold
 
-local index_otf
-local plist_otf
+local pat_otf
 local cmdl_otf
 local cmd_type
 
@@ -32,6 +32,22 @@ end
 local function refresh_lens()
     -- ^R ^[
     fn.feedkeys(('%c%c'):format(0x12, 0x1b), 'n')
+end
+
+local function build_dummy_list(cnt)
+    local plist = {}
+    for _ = 1, cnt do
+        table.insert(plist, DUMMY_POS)
+    end
+    return plist
+end
+
+local function render_lens(bufnr, idx, cnt, pos)
+    -- To build a dummy list for compatibility
+    local plist = build_dummy_list(cnt)
+    plist[idx] = pos
+    render.add_lens(bufnr, plist, true, idx, 0)
+    refresh_lens()
 end
 
 local function clear_lens(bufnr)
@@ -83,37 +99,37 @@ local function filter(pat)
     return true
 end
 
-local function jump_inc(forward)
-    if plist_otf and #plist_otf > 0 then
-        local inc = forward and 1 or -1
-        local cnt = #plist_otf
-        local idx = index_otf + inc
-        if vim.o.ws then
-            index_otf = (idx + cnt - 1) % cnt + 1
-        else
-            if idx < 1 or idx > cnt then
-                return
-            else
-                index_otf = idx
+local function do_search(bufnr, delay)
+    bufnr = bufnr or api.nvim_get_current_buf()
+    timer = utils.killable_defer(timer, function()
+        if cmd_type == fn.getcmdtype() then
+            local res = fn.searchcount({
+                recompute = true,
+                maxcount = 10000,
+                timeout = 100,
+                pattern = pat_otf
+            })
+            if res.incomplete == 0 and res.total and res.total > 0 then
+                render.clear(false, bufnr)
+                if should_fold then
+                    cmd('norm! zv')
+                end
+
+                local idx = res.current
+
+                local pos = fn.searchpos(pat_otf, 'bn')
+                render_lens(bufnr, idx, res.total, pos)
             end
         end
-
-        if should_fold then
-            local pos = plist_otf[index_otf]
-            api.nvim_win_set_cursor(0, {pos[1], pos[2] - 1})
-            cmd('norm! zv')
-        end
-        render.clear(false, 0)
-        render.add_lens(0, plist_otf, true, index_otf, 0)
-    end
+    end, delay or 0)
 end
 
-local function is_incsearch()
+local function incsearch_enabled()
     return vim.o.is and incsearch
 end
 
 function M.search_attach()
-    if not is_incsearch() then
+    if not incsearch_enabled() then
         return
     end
 
@@ -127,16 +143,14 @@ function M.search_attach()
         local b = char:byte(1, -1)
         -- ^G = 0x7
         -- ^T = 0x14
-        if b == 7 then
-            jump_inc(true)
-        elseif b == 20 then
-            jump_inc(false)
+        if b == 0x07 or b == 0x14 then
+            do_search()
         end
     end, ns)
 end
 
 function M.search_changed()
-    if not is_incsearch() or fn.bufname() == '[Command Line]' then
+    if not incsearch_enabled() or fn.bufname() == '[Command Line]' then
         return
     end
 
@@ -147,37 +161,13 @@ function M.search_changed()
         cmdl_otf = cmdl
     end
 
-    local pat = split_cmdl(cmdl, cmd_type)
+    pat_otf = split_cmdl(cmdl, cmd_type)
 
     local bufnr = api.nvim_get_current_buf()
     render.clear(true)
 
-    if filter(pat) then
-        local ctype = fn.getcmdtype()
-        timer = utils.killable_defer(timer, function()
-            if api.nvim_get_mode().mode ~= 'c' or ctype ~= fn.getcmdtype() then
-                return
-            end
-            local plist = index.build(bufnr, pat)
-            if #plist > 0 then
-                render.clear(false, bufnr)
-                local pos = fn.searchpos(pat, 'bn')
-                local idx, r = utils.bin_search(plist, pos, utils.compare_pos)
-                if r ~= 0 then
-                    return
-                end
-                plist_otf, index_otf = plist, idx
-                if should_fold then
-                    cmd('norm! zv')
-                end
-
-                render.add_lens(bufnr, plist, true, idx, 0)
-
-                refresh_lens()
-            else
-                clear_lens(bufnr)
-            end
-        end, 50)
+    if filter(pat_otf) then
+        do_search(bufnr, 50)
     else
         clear_lens(bufnr)
     end
@@ -191,8 +181,7 @@ function M.search_detach()
     local pat, raw_off = split_cmdl(cmdl, cmd_type)
     last_pat, last_off = pat, parse_off(raw_off or '')
 
-    index_otf = nil
-    plist_otf = nil
+    pat_otf = nil
     cmdl_otf = nil
     cmd_type = nil
     should_fold = false
