@@ -42,7 +42,7 @@ local function autocmd(initial)
                 au CmdlineLeave : lua require('hlslens.main').observe_noh()
                 au CursorMoved * lua require('hlslens.main').refresh()
                 au WinEnter,TermLeave,VimResized * lua require('hlslens.main').refresh(true)
-                au BufWinEnter * lua require('hlslens.main').wrap_refresh()
+                au BufWinEnter * lua require('hlslens.main').refresh(true)
                 au TermEnter * lua require('hlslens.main').clear_cur_lens()
             aug END
         ]])
@@ -60,7 +60,9 @@ end
 function M.cmdl_search_leave()
     cmdls.search_detach()
     if vim.v.event.abort then
-        M.wrap_refresh()
+        vim.schedule(function()
+            M.refresh(true)
+        end)
     else
         M.start()
     end
@@ -95,12 +97,6 @@ function M.disable()
     index.clear()
     cmd('sil! au! HlSearchLens')
     status = 'stop'
-end
-
-function M.wrap_refresh()
-    vim.schedule(function()
-        M.refresh(true)
-    end)
 end
 
 function M.refresh(force)
@@ -140,7 +136,7 @@ function M.refresh(force)
     local n_idx = pinfo.idx
 
     local hit
-    if not render.defer_failed() and not force then
+    if not force then
         hit = index.hit_cache(bufnr, pattern, n_idx, nr_idx)
         -- print('cache hit:', hit, vim.loop.hrtime() - s)
         if hit and not calm_down then
@@ -179,7 +175,7 @@ function M.start()
             autocmd()
             status = 'start'
         end
-        M.wrap_refresh()
+        M.refresh()
     end
 end
 

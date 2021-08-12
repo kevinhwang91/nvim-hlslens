@@ -18,8 +18,6 @@ local float_shadow_blend
 local float_virt_id
 
 local gutter_size
-local timer
-local defer_failed
 
 local function init()
     virt_priority = config.virt_priority
@@ -27,7 +25,6 @@ local function init()
     nearest_float_when = config.nearest_float_when
     float_shadow_blend = config.float_shadow_blend
 
-    defer_failed = false
     cmd([[
         hi default link HlSearchNear IncSearch
         hi default link HlSearchLens WildMenu
@@ -135,12 +132,6 @@ function M.set_virt(bufnr, lnum, col, chunks, nearest)
     end
 end
 
-function M.defer_failed()
-    local ret = defer_failed
-    defer_failed = false
-    return ret
-end
-
 function M.add_win_hl(winid, start_p, end_p)
     winhl.add_hl(winid, start_p, end_p, 'HlSearchNear')
 end
@@ -207,24 +198,13 @@ function M.do_lens(plist, nearest, idx, r_idx)
     end
 
     local bufnr = api.nvim_get_current_buf()
-    local changedtick = api.nvim_buf_get_changedtick(bufnr)
-    -- extmark may cause a performance issue
-    timer = utils.killable_defer(timer, function()
-        local cur_bufnr = api.nvim_get_current_buf()
-        if bufnr == cur_bufnr and changedtick == api.nvim_buf_get_changedtick(cur_bufnr) and
-            vim.v.hlsearch == 1 and fn.win_gettype(0) ~= 'popup' then
-            gutter_size = utils.gutter_size(0)
-            extmark.clear_buf(bufnr)
-            M.add_lens(bufnr, plist, true, idx, r_idx)
-            for _, idxs in pairs(tbl_render) do
-                M.add_lens(bufnr, plist, false, idxs[1], idxs[2])
-            end
-            gutter_size = false
-            defer_failed = false
-        else
-            defer_failed = true
-        end
-    end, 50)
+    gutter_size = utils.gutter_size(0)
+    extmark.clear_buf(bufnr)
+    M.add_lens(bufnr, plist, true, idx, r_idx)
+    for _, idxs in pairs(tbl_render) do
+        M.add_lens(bufnr, plist, false, idxs[1], idxs[2])
+    end
+    gutter_size = false
 end
 
 function M.clear(hl, bufnr, floated)
