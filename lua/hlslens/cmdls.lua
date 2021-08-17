@@ -119,6 +119,8 @@ local function do_search(bufnr, delay)
 
                 local pos = fn.searchpos(pat_otf, 'bn')
                 render_lens(bufnr, idx, res.total, pos)
+            else
+                clear_lens(bufnr)
             end
         end
     end, delay or 0)
