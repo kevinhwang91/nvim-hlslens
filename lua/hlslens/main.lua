@@ -48,6 +48,13 @@ local function autocmd(initial)
     end
 end
 
+local function may_initialize()
+    if status == 'stop' then
+        autocmd()
+        status = 'start'
+    end
+end
+
 function M.cmdl_search_enter()
     cmdls.search_attach()
 end
@@ -58,12 +65,15 @@ end
 
 function M.cmdl_search_leave()
     cmdls.search_detach()
-    if vim.v.event.abort then
-        vim.schedule(function()
-            M.refresh(true)
-        end)
-    else
-        M.start()
+    if vim.o.hlsearch then
+        may_initialize()
+        if vim.v.event.abort then
+            vim.schedule(function()
+                M.refresh(true)
+            end)
+        else
+            vim.schedule(M.refresh)
+        end
     end
 end
 
@@ -99,7 +109,6 @@ function M.disable()
 end
 
 function M.refresh(force)
-    -- local s = vim.loop.hrtime()
     if vim.v.hlsearch == 0 then
         vim.schedule(function()
             if vim.v.hlsearch == 0 then
@@ -137,7 +146,6 @@ function M.refresh(force)
     local hit
     if not force then
         hit = index.hit_cache(bufnr, pattern, n_idx, nr_idx)
-        -- print('cache hit:', hit, vim.loop.hrtime() - s)
         if hit and not calm_down then
             return
         end
@@ -165,15 +173,11 @@ function M.refresh(force)
 
     render.add_win_hl(0, pos_s, pos_e)
     render.do_lens(plist, c_off ~= '' and c_off ~= 's' and c_off ~= 'e', n_idx, nr_idx)
-    -- print(vim.loop.hrtime() - s)
 end
 
 function M.start()
     if vim.o.hlsearch then
-        if status == 'stop' then
-            autocmd()
-            status = 'start'
-        end
+        may_initialize()
         M.refresh()
     end
 end
