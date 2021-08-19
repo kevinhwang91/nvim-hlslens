@@ -67,13 +67,9 @@ function M.cmdl_search_leave()
     cmdls.search_detach()
     if vim.o.hlsearch then
         may_initialize()
-        if vim.v.event.abort then
-            vim.schedule(function()
-                M.refresh(true)
-            end)
-        else
-            vim.schedule(M.refresh)
-        end
+        vim.schedule(function()
+            M.refresh(true)
+        end)
     end
 end
 
