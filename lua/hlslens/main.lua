@@ -10,11 +10,13 @@ local position = require('hlslens.position')
 local config = require('hlslens.config')
 
 local status
+local last_bufnr
 local calm_down
 
 local function init()
     calm_down = config.calm_down
     status = 'stop'
+    last_bufnr = -1
 end
 
 local function reset()
@@ -140,7 +142,9 @@ function M.refresh(force)
     local n_idx = pinfo.idx
 
     local hit
-    if not force then
+    local t_bufnr = last_bufnr
+    last_bufnr = bufnr
+    if not force and t_bufnr == bufnr then
         hit = index.hit_cache(bufnr, pattern, n_idx, nr_idx)
         if hit and not calm_down then
             return
