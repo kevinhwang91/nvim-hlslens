@@ -129,6 +129,10 @@ function M.refresh(force)
     else
         plist, plist_end = index.build(bufnr, pattern)
     end
+
+    local t_bufnr = last_bufnr
+    last_bufnr = bufnr
+
     if #plist == 0 then
         render.clear(true, bufnr, true)
         return
@@ -142,8 +146,6 @@ function M.refresh(force)
     local n_idx = pinfo.idx
 
     local hit
-    local t_bufnr = last_bufnr
-    last_bufnr = bufnr
     if not force and t_bufnr == bufnr then
         hit = index.hit_cache(bufnr, pattern, n_idx, nr_idx)
         if hit and not calm_down then
