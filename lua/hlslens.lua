@@ -4,17 +4,22 @@ local enabled
 local initialized = false
 
 function M.setup(opts)
-    if initialized then
+    if initialized and not M._config then
         return
     end
 
     opts = opts or {}
 
+    cmd([[
+        aug HlSearchLens
+            au!
+        aug END
+    ]])
     if opts.auto_enable == false then
         enabled = false
     else
         enabled = true
-        vim.cmd([[au CmdlineEnter [/\?] ++once lua require('hlslens').enable()]])
+        vim.cmd([[au HlSearchLens CmdlineEnter [/\?] ++once lua require('hlslens').enable()]])
     end
     -- M._config will become nil latter
     M._config = opts
