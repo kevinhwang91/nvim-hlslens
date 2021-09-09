@@ -21,12 +21,15 @@ local last_off
 local ns
 local timer
 
+local on_key
+
 local function init()
     last_pat = ''
     last_off = ''
     ns = api.nvim_create_namespace('hlslens')
     incsearch = config.enable_incsearch
     should_fold = false
+    on_key = vim.on_key and vim.on_key or vim.register_keystroke_callback
 end
 
 local function refresh_lens()
@@ -141,7 +144,7 @@ function M.search_attach()
 
     cmdl_otf = ''
     cmd_type = vim.v.event.cmdtype
-    vim.register_keystroke_callback(function(char)
+    on_key(function(char)
         local b = char:byte(1, -1)
         -- ^G = 0x7
         -- ^T = 0x14
@@ -188,7 +191,7 @@ function M.search_detach()
     cmd_type = nil
     should_fold = false
 
-    vim.register_keystroke_callback(nil, ns)
+    on_key(nil, ns)
 end
 
 function M.off(pat)
