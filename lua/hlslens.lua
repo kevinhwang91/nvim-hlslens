@@ -4,7 +4,7 @@ local enabled
 local initialized = false
 
 function M.setup(opts)
-    if initialized and not M._config then
+    if initialized and (not M._config or not opts) then
         return
     end
 
