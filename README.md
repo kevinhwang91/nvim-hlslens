@@ -167,6 +167,8 @@ hi default link HlSearchFloat IncSearch
 ### Commands
 
 - `HlSearchLensToggle`: Toggle nvim-hlslens enable/disable
+- `HlSearchLensEnable`: Enable nvim-hlslens
+- `HlSearchLensDisable`: Disable nvim-hlslens
 
 ## Advanced configuration
 

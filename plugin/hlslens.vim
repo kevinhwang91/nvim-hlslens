@@ -12,3 +12,5 @@ let g:loaded_nvim_hlslens = 1
 lua require('hlslens').setup()
 
 com! HlSearchLensToggle lua require('hlslens').toggle()
+com! HlSearchLensEnable lua require('hlslens').enable()
+com! HlSearchLensDisable lua require('hlslens').disable()
