@@ -21,11 +21,14 @@ local last_off
 local ns
 local timer
 
+local skip
+
 local on_key
 
 local function init()
     last_pat = ''
     last_off = ''
+    skip = false
     ns = api.nvim_create_namespace('hlslens')
     incsearch = config.enable_incsearch
     should_fold = false
@@ -145,16 +148,27 @@ function M.search_attach()
     cmdl_otf = ''
     cmd_type = vim.v.event.cmdtype
     on_key(function(char)
-        local b = char:byte(1, -1)
-        -- ^G = 0x7
-        -- ^T = 0x14
-        if b == 0x07 or b == 0x14 then
+        local b1, b2, b3 = char:byte(1, -1)
+        if b1 == 0x07 or b1 == 0x14 then
+            -- <C-g> = 0x7
+            -- <C-t> = 0x14
             do_search()
+        elseif b1 == 0x80 and b2 == 0x6b and (b3 == 0x64 or b3 == 0x75) then
+            -- <Up> = 0x80 0x6b 0x75
+            -- <Down> = 0x80 0x6b 0x64
+            -- TODO https://github.com/kevinhwang91/nvim-hlslens/issues/18
+            skip = true
+            render.clear(false, 0, true)
         end
     end, ns)
 end
 
 function M.search_changed()
+    if skip then
+        skip = false
+        return
+    end
+
     if not incsearch_enabled() or fn.bufname() == '[Command Line]' then
         return
     end
