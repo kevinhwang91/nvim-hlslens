@@ -109,24 +109,27 @@ local function do_search(bufnr, delay)
     bufnr = bufnr or api.nvim_get_current_buf()
     timer = utils.killable_defer(timer, function()
         if cmd_type == fn.getcmdtype() then
-            local res = fn.searchcount({
+            local ok, msg = pcall(fn.searchcount, {
                 recompute = true,
                 maxcount = 10000,
                 timeout = 100,
                 pattern = pat_otf
             })
-            if res.incomplete == 0 and res.total and res.total > 0 then
-                render.clear(false, bufnr)
-                if should_fold then
-                    cmd('norm! zv')
+            if ok then
+                local res = msg
+                if res.incomplete == 0 and res.total and res.total > 0 then
+                    render.clear(false, bufnr)
+                    if should_fold then
+                        cmd('norm! zv')
+                    end
+
+                    local idx = res.current
+
+                    local pos = fn.searchpos(pat_otf, 'bn')
+                    render_lens(bufnr, idx, res.total, pos)
+                else
+                    clear_lens(bufnr)
                 end
-
-                local idx = res.current
-
-                local pos = fn.searchpos(pat_otf, 'bn')
-                render_lens(bufnr, idx, res.total, pos)
-            else
-                clear_lens(bufnr)
             end
         end
     end, delay or 0)
