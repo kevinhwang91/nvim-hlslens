@@ -1,0 +1,11 @@
+*hlslens.txt*
+*nvimhlslens.txt*
+*nvim-hlslens.txt*
+
+`URL`: https://github.com/kevinhwang91/nvim-hlslens
+
+`PATH`: ../README.md
+
+press `gf` or `CTRL-W gf` under the PATH value :)
+
+vim:ft=help
