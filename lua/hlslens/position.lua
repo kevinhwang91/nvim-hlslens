@@ -88,6 +88,14 @@ function M.nearest_idx_info(pattern, plist, plist_end)
                     i_pos_e = fn.searchpos(pattern, 'cenW')
                     fn.winrestview(wv)
                 end
+
+                -- When matched instance is zero-width with only single char, current index end
+                -- position will be equal next start position. Check this condition for special
+                -- treatment
+                local ni_pos_s = idx < #plist and plist[idx + 1] or {0, 0}
+                if utils.compare_pos(i_pos_e, ni_pos_s) == 0 then
+                    i_pos_e = i_pos_s
+                end
                 tbl.pos_e = i_pos_e
                 return tbl.pos_e
             elseif k == 'r_idx_e' then
