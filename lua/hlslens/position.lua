@@ -72,12 +72,12 @@ function M.nearest_idx_info(pattern, plist, plist_end)
                 local i_pos_e
 
                 if r_idx_s == 0 then
-                    i_pos_e = fn.searchpos(pattern, 'cen')
+                    i_pos_e = fn.searchpos(pattern, 'cenW')
                 else
                     -- cursor is locating current index positioin
                     fn.cursor(i_pos_s)
                     if r_idx_s == 1 and idx > 1 then
-                        if utils.compare_pos(c_pos, fn.searchpos(pattern, 'ben')) <= 0 then
+                        if utils.compare_pos(c_pos, fn.searchpos(pattern, 'benW')) <= 0 then
                             idx = idx - 1
                             r_idx_s = -1
                             i_pos_s = plist[idx]
@@ -85,7 +85,7 @@ function M.nearest_idx_info(pattern, plist, plist_end)
                             tbl.idx, tbl.r_idx_s, tbl.pos_s = idx, r_idx_s, i_pos_s
                         end
                     end
-                    i_pos_e = fn.searchpos(pattern, 'cen')
+                    i_pos_e = fn.searchpos(pattern, 'cenW')
                     fn.winrestview(wv)
                 end
                 tbl.pos_e = i_pos_e
