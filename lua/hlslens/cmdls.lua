@@ -191,7 +191,11 @@ function M.search_changed()
     if filter(pat_otf) then
         do_search(bufnr, 50)
     else
-        clear_lens(bufnr)
+        timer = utils.killable_defer(timer, function()
+            if cmd_type == fn.getcmdtype() then
+                clear_lens(bufnr)
+            end
+        end, 0)
     end
 end
 
@@ -209,6 +213,13 @@ function M.search_detach()
     should_fold = false
 
     on_key(nil, ns)
+
+    if timer and timer:has_ref() then
+        timer:stop()
+        if not timer:is_closing() then
+            timer:close()
+        end
+    end
 end
 
 function M.off(pat)
