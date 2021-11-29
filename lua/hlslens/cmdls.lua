@@ -40,7 +40,7 @@ local function refresh_lens()
     fn.feedkeys(('%c%c'):format(0x12, 0x1b), 'n')
 end
 
-local function build_dummy_list(cnt)
+local function fill_dummy_list(cnt)
     local plist = {}
     for _ = 1, cnt do
         table.insert(plist, DUMMY_POS)
@@ -50,7 +50,7 @@ end
 
 local function render_lens(bufnr, idx, cnt, pos)
     -- To build a dummy list for compatibility
-    local plist = build_dummy_list(cnt)
+    local plist = fill_dummy_list(cnt)
     plist[idx] = pos
     render.add_lens(bufnr, plist, true, idx, 0)
     refresh_lens()
@@ -111,7 +111,7 @@ local function do_search(bufnr, delay)
         if cmd_type == fn.getcmdtype() then
             local ok, msg = pcall(fn.searchcount, {
                 recompute = true,
-                maxcount = 10000,
+                maxcount = 100000,
                 timeout = 100,
                 pattern = pat_otf
             })

@@ -9,13 +9,14 @@ local index = require('hlslens.index')
 local position = require('hlslens.position')
 local config = require('hlslens.config')
 
+local STATE = {START = 0, STOP = 1}
 local status
 local last_bufnr
 local calm_down
 
 local function init()
     calm_down = config.calm_down
-    status = 'stop'
+    status = STATE.STOP
     last_bufnr = -1
 end
 
@@ -51,9 +52,9 @@ local function autocmd(initial)
 end
 
 local function may_initialize()
-    if status == 'stop' then
+    if status == STATE.STOP then
         autocmd()
-        status = 'start'
+        status = STATE.START
     end
 end
 
@@ -88,7 +89,7 @@ function M.clear_lens()
 end
 
 function M.enable()
-    if status == 'stop' then
+    if status == STATE.STOP then
         autocmd(true)
         if api.nvim_get_mode().mode == 'c' then
             M.cmdl_search_enter()
@@ -103,7 +104,7 @@ function M.disable()
     M.clear_lens()
     index.clear()
     cmd('sil! au! HlSearchLens')
-    status = 'stop'
+    status = STATE.STOP
 end
 
 function M.refresh(force)
@@ -121,29 +122,28 @@ function M.refresh(force)
     local pattern = fn.getreg('/')
     local bufnr = api.nvim_get_current_buf()
 
-    local plist, plist_end
-
-    -- command line window
-    if fn.bufname() == '[Command Line]' then
-        plist = {}
-    else
-        plist, plist_end = index.build(bufnr, pattern)
-    end
+    local plist = index.build(bufnr, pattern)
+    local splist = plist.start_pos
 
     local t_bufnr = last_bufnr
     last_bufnr = bufnr
 
-    if #plist == 0 then
+    if #splist == 0 then
         render.clear(true, bufnr, true)
         return
     end
 
-    local pinfo = position.nearest_idx_info(pattern, plist, plist_end)
+    local pinfo = position.nearest_idx_info(plist)
 
     local c_off = cmdls.off(pattern)
 
-    local nr_idx = c_off == 'e' and pinfo.r_idx_e or pinfo.r_idx_s
+    local pos_e = pinfo.pos_e
+    local r_idx_e = pinfo.r_idx_e
+    local pos_s = pinfo.pos_s
+    local r_idx_s = pinfo.r_idx_s
+
     local n_idx = pinfo.idx
+    local nr_idx = c_off == 'e' and pinfo.r_idx_e or pinfo.r_idx_s
 
     local hit
     if not force and t_bufnr == bufnr then
@@ -153,13 +153,6 @@ function M.refresh(force)
         end
     end
     index.update_cache(bufnr, pattern, n_idx, nr_idx)
-
-    -- index may be changed after updating cache, assign info again
-    local pos_e = pinfo.pos_e
-    local r_idx_e = pinfo.r_idx_e
-    local pos_s = pinfo.pos_s
-    local r_idx_s = pinfo.r_idx_s
-    n_idx, nr_idx = pinfo.idx, c_off == 'e' and r_idx_e or r_idx_s
 
     if calm_down then
         if r_idx_s > 0 or r_idx_e < 0 then
@@ -174,7 +167,7 @@ function M.refresh(force)
     end
 
     render.add_win_hl(0, pos_s, pos_e)
-    render.do_lens(plist, c_off ~= '' and c_off ~= 's' and c_off ~= 'e', n_idx, nr_idx)
+    render.do_lens(splist, c_off ~= '' and c_off ~= 's' and c_off ~= 'e', n_idx, nr_idx)
 end
 
 function M.start()

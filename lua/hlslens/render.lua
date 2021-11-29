@@ -72,14 +72,14 @@ end
 
 -- Add lens template, can be overrided by `override_lens`
 -- @param bufnr (number) buffer number
--- @param plist (table) (1,1)-indexed position list
+-- @param splist (table) (1,1)-indexed position list
 -- @param nearest (boolean) whether nearest lens
 -- @param idx (number) nearest index in the plist
 -- @param r_idx (number) relative index, negative means before current position, positive means after
-function M.add_lens(bufnr, plist, nearest, idx, r_idx)
+function M.add_lens(bufnr, splist, nearest, idx, r_idx)
     if type(config.override_lens) == 'function' then
         -- export render module for hacking :)
-        return config.override_lens(M, plist, nearest, idx, r_idx)
+        return config.override_lens(M, splist, nearest, idx, r_idx)
     end
     local sfw = vim.v.searchforward == 1
     local indicator, text, chunks
@@ -92,9 +92,9 @@ function M.add_lens(bufnr, plist, nearest, idx, r_idx)
         indicator = ''
     end
 
-    local lnum, col = unpack(plist[idx], 1, 2)
+    local lnum, col = unpack(splist[idx])
     if nearest then
-        local cnt = #plist
+        local cnt = #splist
         if indicator ~= '' then
             text = ('[%s %d/%d]'):format(indicator, idx, cnt)
         else
@@ -136,15 +136,15 @@ function M.add_win_hl(winid, start_p, end_p)
     winhl.add_hl(winid, start_p, end_p, 'HlSearchNear')
 end
 
-function M.do_lens(plist, nearest, idx, r_idx)
-    local pos_len = #plist
-    local idx_lnum = plist[idx][1]
+function M.do_lens(splist, nearest, idx, r_idx)
+    local pos_len = #splist
+    local idx_lnum = splist[idx][1]
 
     local tbl_render = {}
 
     if not nearest_only and not nearest then
         local t0, b0
-        local p_pos, n_pos = plist[math.max(1, idx - 1)], plist[math.min(pos_len, idx + 1)]
+        local p_pos, n_pos = splist[math.max(1, idx - 1)], splist[math.min(pos_len, idx + 1)]
         -- TODO just relieve foldclosed behavior, can't solve the issue perfectly
         if vim.wo.foldenable then
             t0, b0 = math.min(p_pos[1], fn.line('w0')), math.max(n_pos[1], fn.line('w$'))
@@ -159,7 +159,7 @@ function M.do_lens(plist, nearest, idx, r_idx)
         local last_hl_lnum = 0
         local top_r_idx = math.min(r_idx, 0)
         for i = math.max(idx - 1, 0), 1, -1 do
-            i_lnum = plist[i][1]
+            i_lnum = splist[i][1]
             if i_lnum < top_limit then
                 break
             end
@@ -177,13 +177,13 @@ function M.do_lens(plist, nearest, idx, r_idx)
         local last_i
         for i = idx + 1, pos_len do
             last_i = i
-            i_lnum = plist[i][1]
+            i_lnum = splist[i][1]
             if last_hl_lnum == i_lnum then
                 goto continue
             end
             last_hl_lnum = i_lnum
             rel_idx = i - 1 - idx + bot_r_idx
-            tbl_render[plist[i - 1][1]] = {i - 1, rel_idx}
+            tbl_render[splist[i - 1][1]] = {i - 1, rel_idx}
             if i_lnum > bot_limit then
                 break
             end
@@ -200,9 +200,9 @@ function M.do_lens(plist, nearest, idx, r_idx)
     local bufnr = api.nvim_get_current_buf()
     gutter_size = utils.gutter_size(0)
     extmark.clear_buf(bufnr)
-    M.add_lens(bufnr, plist, true, idx, r_idx)
+    M.add_lens(bufnr, splist, true, idx, r_idx)
     for _, idxs in pairs(tbl_render) do
-        M.add_lens(bufnr, plist, false, idxs[1], idxs[2])
+        M.add_lens(bufnr, splist, false, idxs[1], idxs[2])
     end
     gutter_size = false
 end
