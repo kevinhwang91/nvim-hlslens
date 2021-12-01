@@ -17,8 +17,6 @@ local float_shadow_blend
 
 local float_virt_id
 
-local gutter_size_cache
-
 local function init()
     virt_priority = config.virt_priority
     nearest_only = config.nearest_only
@@ -115,16 +113,20 @@ function M.set_virt(bufnr, lnum, col, chunks, nearest)
         text = text .. chunk[1]
     end
     if nearest and (nearest_float_when == 'auto' or nearest_float_when == 'always') then
-        local g_size = gutter_size_cache or utils.gutter_size(api.nvim_get_current_win())
+        local g_size = utils.gutter_size(api.nvim_get_current_win())
         local per_line_wid = api.nvim_win_get_width(0) - g_size
-        if nearest_float_when == 'always' then
-            update_floatwin(0, {ex_lnum, ex_col}, per_line_wid, g_size, text)
+        if utils.is_cmdwin(bufnr) then
+            extmark.set_virt_eol(bufnr, lnum, chunks, virt_priority)
         else
-            if enough_size4virt(0, ex_lnum, per_line_wid, #text) then
-                extmark.set_virt_eol(bufnr, lnum, chunks, virt_priority)
-                floatwin.close()
-            else
+            if nearest_float_when == 'always' then
                 update_floatwin(0, {ex_lnum, ex_col}, per_line_wid, g_size, text)
+            else
+                if enough_size4virt(0, ex_lnum, per_line_wid, #text) then
+                    extmark.set_virt_eol(bufnr, lnum, chunks, virt_priority)
+                    floatwin.close()
+                else
+                    update_floatwin(0, {ex_lnum, ex_col}, per_line_wid, g_size, text)
+                end
             end
         end
     else
@@ -198,13 +200,11 @@ function M.do_lens(splist, nearest, idx, r_idx)
     end
 
     local bufnr = api.nvim_get_current_buf()
-    gutter_size_cache = utils.gutter_size(api.nvim_get_current_win())
     extmark.clear_buf(bufnr)
     M.add_lens(bufnr, splist, true, idx, r_idx)
     for _, idxs in pairs(tbl_render) do
         M.add_lens(bufnr, splist, false, idxs[1], idxs[2])
     end
-    gutter_size_cache = false
 end
 
 function M.clear(hl, bufnr, floated)

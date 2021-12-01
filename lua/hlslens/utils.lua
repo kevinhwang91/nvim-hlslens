@@ -47,6 +47,12 @@ function M.gutter_size(winid)
     end)
 end
 
+function M.is_cmdwin(bufnr)
+    return api.nvim_buf_call(bufnr, function()
+        return fn.bufname() == '[Command Line]'
+    end)
+end
+
 function M.vcol(winid, pos)
     local vcol = fn.virtcol(pos)
     if not vim.wo[winid].wrap then

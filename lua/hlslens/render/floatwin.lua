@@ -4,10 +4,14 @@ local api = vim.api
 local winid
 
 function M.close()
+    local ok = true
     if winid and api.nvim_win_is_valid(winid) then
-        api.nvim_win_close(winid, true)
+        -- suppress error in cmdwin
+        ok = pcall(api.nvim_win_close, winid, true)
     end
-    winid = nil
+    if ok then
+        winid = nil
+    end
 end
 
 function M.update(row, col, width)
