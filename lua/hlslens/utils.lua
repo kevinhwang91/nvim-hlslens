@@ -4,6 +4,8 @@ local api = vim.api
 local cmd = vim.cmd
 local uv = vim.loop
 
+local wffi = require('hlslens.wffi')
+
 function M.bin_search(items, e, comp)
     vim.validate({items = {items, 'table'}, comp = {comp, 'function'}})
     local min, max, mid = 1, #items, 1
@@ -40,14 +42,9 @@ end
 
 function M.gutter_size(winid)
     vim.validate({winid = {winid, 'number'}})
-    local size
-    M.win_execute(winid, function()
-        local wv = fn.winsaveview()
-        api.nvim_win_set_cursor(winid, {wv.lnum, 0})
-        size = fn.wincol() - 1
-        fn.winrestview(wv)
+    return M.win_execute(winid, function()
+        return wffi.curwin_col_off()
     end)
-    return size
 end
 
 function M.vcol(winid, pos)

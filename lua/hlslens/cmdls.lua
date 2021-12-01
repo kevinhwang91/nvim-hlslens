@@ -172,7 +172,7 @@ function M.search_changed()
         return
     end
 
-    if not incsearch_enabled() or fn.bufname() == '[Command Line]' then
+    if not incsearch_enabled() then
         return
     end
 

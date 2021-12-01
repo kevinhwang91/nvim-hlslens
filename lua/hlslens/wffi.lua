@@ -26,6 +26,10 @@ function M.vim_regexec_multi(regm, lnum, col)
     return tonumber(C.vim_regexec_multi(regm[0], C.curwin, C.curbuf, lnum, col, nil, nil))
 end
 
+function M.curwin_col_off()
+    return C.curwin_col_off()
+end
+
 local function init()
     local ok
     ok, ffi = pcall(require, 'ffi')
@@ -70,6 +74,8 @@ local function init()
 
         long vim_regexec_multi(regmmatch_T *rmp, win_T *win, buf_T *buf, linenr_T lnum, colnr_T col,
             proftime_T *tm, int *timed_out);
+
+        int curwin_col_off(void);
     ]])
 end
 

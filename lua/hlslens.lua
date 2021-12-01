@@ -19,7 +19,7 @@ function M.setup(opts)
         enabled = false
     else
         enabled = true
-        vim.cmd([[au HlSearchLens CmdlineEnter [/\?] ++once lua require('hlslens').enable()]])
+        cmd([[au HlSearchLens CmdlineEnter [/\?] ++once lua require('hlslens').enable()]])
     end
     -- M._config will become nil latter
     M._config = opts
