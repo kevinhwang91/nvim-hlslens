@@ -2,9 +2,7 @@
 
 nvim-hlslens helps you better glance at matched information, seamlessly jump between matched instances.
 
-<p align="center">
-    <img width="864px" src=https://user-images.githubusercontent.com/17562139/115105257-5a0f6f00-9f90-11eb-92cf-801fe73a45fb.gif>
-</p>
+<https://user-images.githubusercontent.com/17562139/144654751-0d439610-b913-4e72-b473-e49db3317fab.mp4>
 
 ## Table of contents
 
@@ -183,9 +181,7 @@ require('hlslens').setup({
 })
 ```
 
-<p align="center">
-    <img width="864px" src=https://user-images.githubusercontent.com/17562139/115060780-dd8e7900-9f1a-11eb-9fff-6593dbc10e51.gif>
-</p>
+<https://user-images.githubusercontent.com/17562139/144655283-f5e3cf34-6c14-464d-9e09-6f57140c0dda.mp4>
 
 ### Customize virtual text
 
@@ -295,9 +291,7 @@ end
 return M
 ```
 
-<p align="center">
-    <img width="864px" src=https://user-images.githubusercontent.com/17562139/115060810-e41cf080-9f1a-11eb-9196-f49897f34b39.gif>
-</p>
+<https://user-images.githubusercontent.com/17562139/144655345-9185df0e-e27e-4877-9ee6-d0acb811c907.mp4>
 
 ## Feedback
 
