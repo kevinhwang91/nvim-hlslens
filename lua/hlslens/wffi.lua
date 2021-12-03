@@ -33,9 +33,7 @@ end
 local function init()
     local ok
     ok, ffi = pcall(require, 'ffi')
-    if not ok then
-        return
-    end
+    assert(ok, [[Need FFI module, please switch the repository to 'non-ffi' branch!]])
     setmetatable(M, {__index = ffi})
     C = ffi.C
     ffi.cdef([[
