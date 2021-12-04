@@ -14,8 +14,9 @@ local virt_priority
 local nearest_only
 local nearest_float_when
 local float_shadow_blend
-
 local float_virt_id
+
+local hl_blend_tbl
 
 local function init()
     virt_priority = config.virt_priority
@@ -30,17 +31,36 @@ local function init()
         hi default link HlSearchFloat IncSearch
     ]])
 
-    if vim.o.termguicolors then
-        local tbl_hi_cmd = {'hi HlSearchFloat', 'blend=0'}
-        for k, v in pairs(utils.hl_attrs('HlSearchFloat')) do
-            table.insert(tbl_hi_cmd,
-                ('%s=%s'):format(k, type(v) == 'table' and table.concat(v, ',') or v))
+    hl_blend_tbl = setmetatable({Ignore = 'Ignore'}, {
+        __index = function(tbl, hlgroup)
+            local new_hlgroup
+            if vim.o.termguicolors then
+                new_hlgroup = 'HlSearchBlend_' .. hlgroup
+                local hl_cmd_tbl = {'hi ' .. new_hlgroup, 'blend=0'}
+                for k, v in pairs(utils.hl_attrs(hlgroup)) do
+                    table.insert(hl_cmd_tbl, ('%s=%s'):format(k, type(v) == 'table' and
+                        table.concat(v, ',') or v))
+                end
+                cmd(table.concat(hl_cmd_tbl, ' '))
+            else
+                new_hlgroup = hlgroup
+            end
+            rawset(tbl, hlgroup, new_hlgroup)
+            return rawget(tbl, hlgroup)
         end
-        cmd(table.concat(tbl_hi_cmd, ' '))
-    end
+    })
 end
 
-local function enough_size4virt(winid, lnum, line_wid, t_len)
+local function chunks2text(chunks)
+    local text = ''
+    for _, chunk in ipairs(chunks) do
+        text = text .. chunk[1]
+    end
+    return text
+end
+
+local function enough_size4virt(winid, lnum, chunks, line_wid)
+    local text = chunks2text(chunks)
     local end_vcol = utils.vcol(winid, {lnum, '$'}) - 1
     local re_vcol
     if vim.wo[winid].wrap then
@@ -48,19 +68,25 @@ local function enough_size4virt(winid, lnum, line_wid, t_len)
     else
         re_vcol = math.max(0, line_wid - end_vcol)
     end
-    return re_vcol > t_len
+    return re_vcol > #text
 end
 
-local function update_floatwin(winid, pos, line_wid, g_size, text)
+local function update_floatwin(winid, pos, chunks, line_wid, g_size)
     local width, height = api.nvim_win_get_width(winid), api.nvim_win_get_height(winid)
     local f_col = utils.vcol(winid, pos) % line_wid + g_size - 1
-    text = vim.trim(text)
+    local text = chunks2text(chunks)
     if vim.o.termguicolors then
         local f_win, f_buf = floatwin.update(height, 0, width)
         vim.wo[f_win].winbl = float_shadow_blend
         local padding = (' '):rep(math.min(f_col, width - #text) - 1)
-        local chunks = {{padding, 'Ignore'}, {text, 'HlSearchFloat'}}
-        float_virt_id = extmark.set_virt_eol(f_buf, 0, chunks, virt_priority, float_virt_id)
+        local new_chunks = {{padding, 'Ignore'}}
+        for _, chunk in ipairs(chunks) do
+            local t, hlgroup = unpack(chunk)
+            if not t:match('%s+') and hlgroup ~= 'Ignore' then
+                table.insert(new_chunks, {t, hl_blend_tbl[hlgroup]})
+            end
+        end
+        float_virt_id = extmark.set_virt_eol(f_buf, 0, new_chunks, virt_priority, float_virt_id)
     else
         local f_win, f_buf = floatwin.update(height, f_col, #text)
         vim.wo[f_win].winhl = 'Normal:HlSearchFloat'
@@ -108,24 +134,20 @@ end
 
 function M.set_virt(bufnr, lnum, col, chunks, nearest)
     local ex_lnum, ex_col = lnum + 1, col + 1
-    local text = ''
-    for _, chunk in ipairs(chunks) do
-        text = text .. chunk[1]
-    end
     if nearest and (nearest_float_when == 'auto' or nearest_float_when == 'always') then
-        local g_size = utils.gutter_size(api.nvim_get_current_win())
-        local per_line_wid = api.nvim_win_get_width(0) - g_size
         if utils.is_cmdwin(bufnr) then
             extmark.set_virt_eol(bufnr, lnum, chunks, virt_priority)
         else
+            local g_size = utils.gutter_size(api.nvim_get_current_win())
+            local per_line_wid = api.nvim_win_get_width(0) - g_size
             if nearest_float_when == 'always' then
-                update_floatwin(0, {ex_lnum, ex_col}, per_line_wid, g_size, text)
+                update_floatwin(0, {ex_lnum, ex_col}, chunks, per_line_wid, g_size)
             else
-                if enough_size4virt(0, ex_lnum, per_line_wid, #text) then
+                if enough_size4virt(0, ex_lnum, chunks, per_line_wid) then
                     extmark.set_virt_eol(bufnr, lnum, chunks, virt_priority)
                     floatwin.close()
                 else
-                    update_floatwin(0, {ex_lnum, ex_col}, per_line_wid, g_size, text)
+                    update_floatwin(0, {ex_lnum, ex_col}, chunks, per_line_wid, g_size)
                 end
             end
         end

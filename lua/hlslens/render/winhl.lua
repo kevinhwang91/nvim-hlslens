@@ -6,7 +6,7 @@ local api = vim.api
 local utils = require('hlslens.utils')
 local win_mids = {}
 
-function M.add_hl(winid, start_p, end_p, higroup)
+function M.add_hl(winid, start_p, end_p, hlgroup)
     winid = winid == 0 and api.nvim_get_current_win() or winid
     M.clear_hl()
 
@@ -23,7 +23,7 @@ function M.add_hl(winid, start_p, end_p, higroup)
         table.insert(pos, {e_lnum, 1, e_col})
     end
 
-    local matchids = utils.matchaddpos(higroup, pos, 1, winid)
+    local matchids = utils.matchaddpos(hlgroup, pos, 1, winid)
     win_mids = {winid, matchids}
     return matchids
 end
