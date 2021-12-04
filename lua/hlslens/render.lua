@@ -82,7 +82,7 @@ local function update_floatwin(winid, pos, chunks, line_wid, g_size)
         local new_chunks = {{padding, 'Ignore'}}
         for _, chunk in ipairs(chunks) do
             local t, hlgroup = unpack(chunk)
-            if not t:match('%s+') and hlgroup ~= 'Ignore' then
+            if not t:match('^%s+$') and hlgroup ~= 'Ignore' then
                 table.insert(new_chunks, {t, hl_blend_tbl[hlgroup]})
             end
         end
