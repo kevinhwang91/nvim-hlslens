@@ -277,14 +277,14 @@ function M.start()
         config = require('hlslens.config')
         lens_backup = config.override_lens
         config.override_lens = override_lens
-        hlslens.start()
+        hlslens.start(true)
     end
 end
 
 function M.exit()
     if hlslens then
         config.override_lens = lens_backup
-        hlslens.start()
+        hlslens.start(true)
     end
 end
 

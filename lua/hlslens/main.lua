@@ -170,10 +170,10 @@ function M.refresh(force)
     render.do_lens(splist, c_off ~= '' and c_off ~= 's' and c_off ~= 'e', n_idx, nr_idx)
 end
 
-function M.start()
+function M.start(force)
     if vim.o.hlsearch then
         may_initialize()
-        M.refresh()
+        M.refresh(force)
     end
 end
 

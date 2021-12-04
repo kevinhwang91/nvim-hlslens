@@ -46,9 +46,9 @@ function M.toggle()
     end
 end
 
-function M.start()
+function M.start(force)
     if enabled then
-        require('hlslens.main').start()
+        require('hlslens.main').start(force)
     end
 end
 
