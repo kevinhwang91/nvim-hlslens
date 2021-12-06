@@ -10,7 +10,13 @@ end
 function M.build_regmatch_T(pat)
     local c_pat = ffi.new('char_u[?]', #pat + 1, pat)
     local regm = ffi.new('regmmatch_T [1]')
-    regm[0].regprog = C.vim_regcomp(c_pat, vim.o.magic and 1 or 0)
+    local regprog = C.vim_regcomp(c_pat, vim.o.magic and 1 or 0)
+
+    -- `if not regprog then` doesn't work with cdata<struct regprog *>: NULL from C
+    if regprog == nil then
+        return
+    end
+    regm[0].regprog = regprog
     regm[0].rmm_ic = C.ignorecase(c_pat)
     regm[0].rmm_maxcol = 0
     return regm
