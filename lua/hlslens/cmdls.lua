@@ -125,7 +125,7 @@ local function do_search(bufnr, delay)
 
                     local idx = res.current
 
-                    local pos = fn.searchpos(pat_otf, 'bnW')
+                    local pos = fn.searchpos(pat_otf, 'bcnW')
                     render_lens(bufnr, idx, res.total, pos)
                 else
                     clear_lens(bufnr)
