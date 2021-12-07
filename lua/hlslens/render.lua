@@ -138,7 +138,7 @@ function M.set_virt(bufnr, lnum, col, chunks, nearest)
         if utils.is_cmdwin(bufnr) then
             extmark.set_virt_eol(bufnr, lnum, chunks, virt_priority)
         else
-            local g_size = utils.gutter_size(api.nvim_get_current_win())
+            local g_size = utils.textoff(api.nvim_get_current_win())
             local per_line_wid = api.nvim_win_get_width(0) - g_size
             if nearest_float_when == 'always' then
                 update_floatwin(0, {ex_lnum, ex_col}, chunks, per_line_wid, g_size)

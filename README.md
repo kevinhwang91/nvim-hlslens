@@ -40,6 +40,8 @@ nvim-hlslens helps you better glance at matched information, seamlessly jump bet
 
 - [Neovim](https://github.com/neovim/neovim) 0.5 or later
 
+> 0.6 or later must be required for Windows users
+
 ### Installation
 
 Install nvim-hlslens with [Vim-plug](https://github.com/junegunn/vim-plug):

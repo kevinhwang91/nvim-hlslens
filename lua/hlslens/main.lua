@@ -5,7 +5,6 @@ local cmd = vim.cmd
 
 local cmdls = require('hlslens.cmdls')
 local render = require('hlslens.render')
-local index = require('hlslens.index')
 local position = require('hlslens.position')
 local config = require('hlslens.config')
 
@@ -30,18 +29,18 @@ local function autocmd(initial)
         cmd([[
             aug HlSearchLens
                 au!
-                au CmdlineEnter [/\?] lua require('hlslens.main').cmdl_search_enter()
-                au CmdlineChanged [/\?] lua require('hlslens.main').cmdl_search_changed()
-                au CmdlineLeave [/\?] lua require('hlslens.main').cmdl_search_leave()
+                au CmdlineEnter /,\? lua require('hlslens.main').cmdl_search_enter()
+                au CmdlineChanged /,\? lua require('hlslens.main').cmdl_search_changed()
+                au CmdlineLeave /,\? lua require('hlslens.main').cmdl_search_leave()
             aug END
         ]])
     else
         cmd([[
             aug HlSearchLens
                 au!
-                au CmdlineEnter [/\?] lua require('hlslens.main').cmdl_search_enter()
-                au CmdlineChanged [/\?] lua require('hlslens.main').cmdl_search_changed()
-                au CmdlineLeave [/\?] lua require('hlslens.main').cmdl_search_leave()
+                au CmdlineEnter /,\? lua require('hlslens.main').cmdl_search_enter()
+                au CmdlineChanged /,\? lua require('hlslens.main').cmdl_search_changed()
+                au CmdlineLeave /,\? lua require('hlslens.main').cmdl_search_leave()
                 au CmdlineLeave : lua require('hlslens.main').observe_noh()
                 au CursorMoved * lua require('hlslens.main').refresh()
                 au WinEnter,TermLeave,VimResized * lua require('hlslens.main').refresh(true)
@@ -102,7 +101,7 @@ end
 
 function M.disable()
     M.clear_lens()
-    index.clear()
+    position.clear()
     cmd('sil! au! HlSearchLens')
     status = STATE.STOP
 end
@@ -122,7 +121,7 @@ function M.refresh(force)
     local pattern = fn.getreg('/')
     local bufnr = api.nvim_get_current_buf()
 
-    local plist = index.build(bufnr, pattern)
+    local plist = position.build(bufnr, pattern)
     local splist = plist.start_pos
 
     local t_bufnr = last_bufnr
@@ -147,12 +146,12 @@ function M.refresh(force)
 
     local hit
     if not force and t_bufnr == bufnr then
-        hit = index.hit_cache(bufnr, pattern, n_idx, nr_idx)
+        hit = position.hit_cache(bufnr, pattern, n_idx, nr_idx)
         if hit and not calm_down then
             return
         end
     end
-    index.update_cache(bufnr, pattern, n_idx, nr_idx)
+    position.update_cache(bufnr, pattern, n_idx, nr_idx)
 
     if calm_down then
         if r_idx_s > 0 or r_idx_e < 0 then

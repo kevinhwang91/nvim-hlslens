@@ -1,10 +1,11 @@
+---@diagnostic disable: undefined-field
 local M = {}
 
 local C
 local ffi
 
 function M.ml_get_buf_len(lnum)
-    return #ffi.string(C.ml_get_buf(C.curbuf, lnum, false))
+    return tonumber(C.strlen(C.ml_get_buf(C.curbuf, lnum, false)))
 end
 
 function M.build_regmatch_T(pat)
@@ -37,9 +38,7 @@ function M.curwin_col_off()
 end
 
 local function init()
-    local ok
-    ok, ffi = pcall(require, 'ffi')
-    assert(ok, [[Need FFI module, please switch the repository to 'non-ffi' branch!]])
+    ffi = require('ffi')
     setmetatable(M, {__index = ffi})
     C = ffi.C
     ffi.cdef([[
@@ -78,6 +77,8 @@ local function init()
 
         long vim_regexec_multi(regmmatch_T *rmp, win_T *win, buf_T *buf, linenr_T lnum, colnr_T col,
             proftime_T *tm, int *timed_out);
+
+        size_t strlen(const char *s);
 
         int curwin_col_off(void);
     ]])

@@ -1,9 +1,67 @@
--- position (1,1)-indexed
 local M = {}
 
+local api = vim.api
 local fn = vim.fn
 
 local utils = require('hlslens.utils')
+
+local bufs
+local jit_enabled
+local range_module
+
+local function build_cache(bufnr, pattern, plist)
+    local c = {
+        plist = plist or {},
+        changedtick = api.nvim_buf_get_changedtick(bufnr),
+        pattern = pattern
+    }
+    if not bufs[bufnr] then
+        bufs.cnt = bufs.cnt + 1
+    end
+    bufs[bufnr] = c
+    return c
+end
+
+function M.hit_cache(bufnr, pattern, n_idx, nr_idx)
+    local c = bufs[bufnr]
+    return c and pattern == c.pattern and n_idx == c.n_idx and nr_idx == c.nr_idx and
+               vim.v.searchforward == c.sfw
+end
+
+function M.update_cache(bufnr, pattern, n_idx, nr_idx)
+    local c = bufs[bufnr]
+    c.pattern, c.n_idx, c.nr_idx, c.sfw = pattern, n_idx, nr_idx, vim.v.searchforward
+end
+
+-- make sure run under current buffer
+function M.build(cur_bufnr, pat)
+    cur_bufnr = cur_bufnr or api.nvim_get_current_buf()
+    local c = bufs[cur_bufnr] or {}
+    if c.changedtick == api.nvim_buf_get_changedtick(cur_bufnr) and c.pattern == pat then
+        return c.plist
+    end
+
+    if not jit_enabled then
+        if not range_module.valid(pat) or vim.bo.bt == 'quickfix' or utils.is_cmdwin() then
+            return build_cache(cur_bufnr, pat, {start_pos = {}, end_pos = {}}).plist
+        end
+    end
+
+    -- fast and simple way to prevent memory leaking :)
+    if bufs.cnt > 5 then
+        bufs = {cnt = 0}
+    end
+
+    local start_pos_list, end_pos_list = range_module.build_list(pat, 10000)
+
+    local plist = {start_pos = start_pos_list, end_pos = end_pos_list}
+    local cache = build_cache(cur_bufnr, pat, plist)
+    return cache.plist
+end
+
+function M.clear()
+    bufs = {cnt = 0}
+end
 
 local function nearest_index(plist, c_pos, topl, botl)
     local splist = plist.start_pos
@@ -66,5 +124,13 @@ function M.nearest_idx_info(plist)
     local r_idx_e = utils.compare_pos(pos_e, c_pos)
     return {idx = idx, r_idx_s = r_idx_s, r_idx_e = r_idx_e, pos_s = pos_s, pos_e = pos_e}
 end
+
+local function init()
+    bufs = {cnt = 0}
+    jit_enabled = utils.jit_enabled()
+    range_module = jit_enabled and require('hlslens.range.regex') or require('hlslens.range.qf')
+end
+
+init()
 
 return M

@@ -6,6 +6,16 @@ local uv = vim.loop
 
 local wffi = require('hlslens.wffi')
 
+M.jit_enabled = (function()
+    local enabled
+    return function()
+        if enabled == nil then
+            enabled = jit and uv.os_uname().sysname ~= 'Windows_NT'
+        end
+        return enabled
+    end
+end)()
+
 function M.bin_search(items, e, comp)
     vim.validate({items = {items, 'table'}, comp = {comp, 'function'}})
     local min, max, mid = 1, #items, 1
@@ -40,17 +50,24 @@ function M.compare_pos(p1, p2)
     end
 end
 
-function M.gutter_size(winid)
+function M.textoff(winid)
+    local textoff
     vim.validate({winid = {winid, 'number'}})
-    return M.win_execute(winid, function()
-        return wffi.curwin_col_off()
-    end)
+    if M.jit_enabled() then
+        textoff = M.win_execute(winid, function()
+            return wffi.curwin_col_off()
+        end)
+    else
+        textoff = fn.getwininfo(winid)[1].textoff
+    end
+    return textoff
 end
 
 function M.is_cmdwin(bufnr)
-    return api.nvim_buf_call(bufnr, function()
+    local function is_cmdw()
         return fn.bufname() == '[Command Line]'
-    end)
+    end
+    return bufnr and api.nvim_buf_call(bufnr, is_cmdw) or is_cmdw()
 end
 
 function M.vcol(winid, pos)

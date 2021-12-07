@@ -142,6 +142,8 @@ end
 function M.search_attach()
     if not incsearch_enabled() then
         return
+    elseif not utils.jit_enabled() and utils.is_cmdwin() then
+        return
     end
 
     if vim.o.fdo:find('search') and vim.wo.foldenable then
