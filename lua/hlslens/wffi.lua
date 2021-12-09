@@ -4,33 +4,37 @@ local M = {}
 local C
 local ffi
 
+local Cchar_u_VLA
+local Cregmmatch_T
+
 function M.ml_get_buf_len(lnum)
     return tonumber(C.strlen(C.ml_get_buf(C.curbuf, lnum, false)))
 end
 
 function M.build_regmatch_T(pat)
-    local c_pat = ffi.new('char_u[?]', #pat + 1, pat)
-    local regm = ffi.new('regmmatch_T [1]')
-    local regprog = C.vim_regcomp(c_pat, vim.o.magic and 1 or 0)
+    local Cpat = Cchar_u_VLA(#pat + 1)
+    ffi.copy(Cpat, pat)
 
+    local regprog = C.vim_regcomp(Cpat, vim.o.magic and 1 or 0)
     -- `if not regprog then` doesn't work with cdata<struct regprog *>: NULL from C
     if regprog == nil then
         return
     end
-    regm[0].regprog = regprog
-    regm[0].rmm_ic = C.ignorecase(c_pat)
-    regm[0].rmm_maxcol = 0
+    local regm = Cregmmatch_T()
+    regm.regprog = regprog
+    regm.rmm_ic = C.ignorecase(Cpat)
+    regm.rmm_maxcol = 0
     return regm
 end
 
 function M.regmatch_pos(regm)
-    local start_pos, end_pos = regm[0].startpos[0], regm[0].endpos[0]
+    local start_pos, end_pos = regm.startpos[0], regm.endpos[0]
     return {lnum = tonumber(start_pos.lnum), col = start_pos.col},
         {lnum = tonumber(end_pos.lnum), col = end_pos.col}
 end
 
 function M.vim_regexec_multi(regm, lnum, col)
-    return tonumber(C.vim_regexec_multi(regm[0], C.curwin, C.curbuf, lnum, col, nil, nil))
+    return tonumber(C.vim_regexec_multi(regm, C.curwin, C.curbuf, lnum, col, nil, nil))
 end
 
 function M.curwin_col_off()
@@ -82,6 +86,9 @@ local function init()
 
         int curwin_col_off(void);
     ]])
+
+    Cchar_u_VLA = ffi.typeof('char_u[?]')
+    Cregmmatch_T = ffi.typeof('regmmatch_T')
 end
 
 init()
