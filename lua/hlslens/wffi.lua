@@ -4,6 +4,7 @@ local M = {}
 local C
 local ffi
 
+local Cpat
 local Cchar_u_VLA
 local Cregmmatch_T
 
@@ -12,7 +13,9 @@ function M.ml_get_buf_len(lnum)
 end
 
 function M.build_regmatch_T(pat)
-    local Cpat = Cchar_u_VLA(#pat + 1)
+    -- https://luajit.org/ext_ffi_semantics.html#gc
+    -- Cpat must be referenced, it will be used during `vim_regexec_multi`
+    Cpat = Cchar_u_VLA(#pat + 1)
     ffi.copy(Cpat, pat)
 
     local regprog = C.vim_regcomp(Cpat, vim.o.magic and 1 or 0)
