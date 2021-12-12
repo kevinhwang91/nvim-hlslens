@@ -4,7 +4,7 @@ local api = vim.api
 
 local wffi = require('hlslens.wffi')
 
-function M.build_list(pat, limit)
+local function do_build(pat, limit)
     local start_pos_list, end_pos_list = {}, {}
     local cnt = 0
     local regm = wffi.build_regmatch_T(pat)
@@ -14,7 +14,8 @@ function M.build_list(pat, limit)
             while wffi.vim_regexec_multi(regm, lnum, col) > 0 do
                 cnt = cnt + 1
                 if cnt > limit then
-                    goto continue
+                    start_pos_list, end_pos_list = {}, {}
+                    goto finish
                 end
                 local start_pos, end_pos = wffi.regmatch_pos(regm)
                 table.insert(start_pos_list, {start_pos.lnum + lnum, start_pos.col + 1})
@@ -29,13 +30,19 @@ function M.build_list(pat, limit)
                 end
             end
         end
-        ::continue::
-
-        if cnt > limit then
-            start_pos_list, end_pos_list = {}, {}
-        end
+        ::finish::
     end
     return start_pos_list, end_pos_list
 end
+
+function M.build_list(pat, limit)
+    return do_build(pat, limit)
+end
+
+local function init()
+    jit.off(do_build, true)
+end
+
+init()
 
 return M
