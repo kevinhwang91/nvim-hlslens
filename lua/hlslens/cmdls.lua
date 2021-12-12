@@ -12,12 +12,13 @@ local DUMMY_POS = {1, 1}
 local incsearch
 local should_fold
 
-local pat_otf
-local cmdl_otf
+local last_cmdl
 local cmd_type
 
 local last_pat
 local last_off
+local last_mul
+
 local ns
 local timer
 
@@ -28,6 +29,7 @@ local on_key
 local function init()
     last_pat = ''
     last_off = ''
+    last_mul = false
     skip = false
     ns = api.nvim_create_namespace('hlslens')
     incsearch = config.enable_incsearch
@@ -76,24 +78,39 @@ local function parse_off(r_off)
 end
 
 local function split_cmdl(cmdl, cmdt)
-    local pat = cmdl
-    local off
-    local i = 0;
+    local pat = ''
+    local off = ''
+    local mul = false
+    local delim = cmdt or '/'
+    local i = 0
+    local start = i + 1
+
     while true do
-        i = cmdl:find(cmdt or '/', i + 1)
-        if i == nil then
+        i = cmdl:find(delim, i + 1)
+        if not i then
+            pat = cmdl:sub(start)
             break
         end
         if cmdl:sub(i - 1, i - 1) ~= [[\]] then
-            pat = cmdl:sub(1, i - 1)
-            if pat == '' then
-                pat = fn.getreg('/')
+            -- For example: "/pat/;/foo/+3;?bar"
+            if cmdl:sub(i + 1, i + 1) == ';' then
+                i = i + 2
+                start = i + 1
+                delim = cmdl:sub(i, i)
+                if i <= #cmdl then
+                    mul = true
+                end
+            else
+                pat = cmdl:sub(start, i - 1)
+                if pat == '' then
+                    pat = fn.getreg('/')
+                end
+                off = cmdl:sub(i + 1)
+                break
             end
-            off = cmdl:sub(i + 1, -1)
-            break
         end
     end
-    return pat, off
+    return pat, off, mul
 end
 
 local function filter(pat)
@@ -113,7 +130,7 @@ local function do_search(bufnr, delay)
                 recompute = true,
                 maxcount = 100000,
                 timeout = 100,
-                pattern = pat_otf
+                pattern = last_pat
             })
             if ok then
                 local res = msg
@@ -125,7 +142,7 @@ local function do_search(bufnr, delay)
 
                     local idx = res.current
 
-                    local pos = fn.searchpos(pat_otf, 'bcnW')
+                    local pos = fn.searchpos(last_pat, 'bcnW')
                     render_lens(bufnr, idx, res.total, pos)
                 else
                     clear_lens(bufnr)
@@ -150,14 +167,16 @@ function M.search_attach()
         should_fold = true
     end
 
-    cmdl_otf = ''
+    last_cmdl = ''
     cmd_type = vim.v.event.cmdtype
     on_key(function(char)
         local b1, b2, b3 = char:byte(1, -1)
         if b1 == 0x07 or b1 == 0x14 then
             -- <C-g> = 0x7
             -- <C-t> = 0x14
-            do_search()
+            if last_off == '' and not last_mul then
+                do_search()
+            end
         elseif b1 == 0x80 and b2 == 0x6b and (b3 == 0x64 or b3 == 0x75) then
             -- <Up> = 0x80 0x6b 0x75
             -- <Down> = 0x80 0x6b 0x64
@@ -179,18 +198,18 @@ function M.search_changed()
     end
 
     local cmdl = fn.getcmdline()
-    if cmdl_otf == cmdl then
+    if last_cmdl == cmdl then
         return
     else
-        cmdl_otf = cmdl
+        last_cmdl = cmdl
     end
 
-    pat_otf = split_cmdl(cmdl, cmd_type)
+    last_pat, last_off, last_mul = split_cmdl(cmdl, cmd_type)
 
     local bufnr = api.nvim_get_current_buf()
     render.clear(true)
 
-    if filter(pat_otf) then
+    if filter(last_pat) then
         do_search(bufnr, 50)
     else
         timer = utils.killable_defer(timer, function()
@@ -206,11 +225,9 @@ function M.search_detach()
     if cmdl == '' then
         cmdl = fn.getreg('/')
     end
-    local pat, raw_off = split_cmdl(cmdl, cmd_type)
-    last_pat, last_off = pat, parse_off(raw_off or '')
+    last_off = parse_off(last_off)
 
-    pat_otf = nil
-    cmdl_otf = nil
+    last_cmdl = nil
     cmd_type = nil
     should_fold = false
 
