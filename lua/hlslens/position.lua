@@ -8,6 +8,7 @@ local utils = require('hlslens.utils')
 local bufs
 local jit_enabled
 local range_module
+local limit
 
 local function build_cache(bufnr, pattern, plist)
     local c = {
@@ -52,7 +53,7 @@ function M.build(cur_bufnr, pat)
         bufs = {cnt = 0}
     end
 
-    local start_pos_list, end_pos_list = range_module.build_list(pat, 10000)
+    local start_pos_list, end_pos_list = range_module.build_list(pat, limit)
 
     local plist = {start_pos = start_pos_list, end_pos = end_pos_list}
     local cache = build_cache(cur_bufnr, pat, plist)
@@ -128,6 +129,7 @@ end
 local function init()
     bufs = {cnt = 0}
     jit_enabled = utils.jit_enabled()
+    limit = jit_enabled and 100000 or 10000
     range_module = jit_enabled and require('hlslens.range.regex') or require('hlslens.range.qf')
 end
 
