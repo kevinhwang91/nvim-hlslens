@@ -7,10 +7,11 @@ local utils = require('hlslens.utils')
 local render = require('hlslens.render')
 local config = require('hlslens.config')
 
-local DUMMY_POS = {1, 1}
+local DUMMY_POS
 
 local incsearch
-local should_fold
+
+local fold_info
 
 local last_cmdl
 local cmd_type
@@ -26,20 +27,9 @@ local skip
 
 local on_key
 
-local function init()
-    last_pat = ''
-    last_off = ''
-    last_mul = false
-    skip = false
-    ns = api.nvim_create_namespace('hlslens')
-    incsearch = config.enable_incsearch
-    should_fold = false
-    on_key = vim.on_key and vim.on_key or vim.register_keystroke_callback
-end
-
 local function refresh_lens()
     -- ^R ^[
-    fn.feedkeys(('%c%c'):format(0x12, 0x1b), 'n')
+    api.nvim_feedkeys(('%c%c'):format(0x12, 0x1b), 'n', false)
 end
 
 local function fill_dummy_list(cnt)
@@ -78,7 +68,7 @@ local function parse_off(r_off)
 end
 
 local function split_cmdl(cmdl, cmdt)
-    local pat = ''
+    local pat
     local off = ''
     local mul = false
     local delim = cmdt or '/'
@@ -122,6 +112,14 @@ local function filter(pat)
     return true
 end
 
+local function close_fold(level, target_line, cur_line)
+    if target_line > 0 then
+        cur_line = cur_line or api.nvim_win_get_cursor(0)[1]
+        level = level or 1
+        cmd(('keepj norm! %dgg%dzc%dgg'):format(target_line, level, cur_line))
+    end
+end
+
 local function do_search(bufnr, delay)
     bufnr = bufnr or api.nvim_get_current_buf()
     timer = utils.killable_defer(timer, function()
@@ -136,13 +134,22 @@ local function do_search(bufnr, delay)
                 local res = msg
                 if res.incomplete == 0 and res.total and res.total > 0 then
                     render.clear(false, bufnr)
-                    if should_fold then
-                        cmd('norm! zv')
-                    end
 
                     local idx = res.current
 
                     local pos = fn.searchpos(last_pat, 'bcnW')
+
+                    if fold_info then
+                        close_fold(fold_info.level, fold_info.lnum)
+                        fold_info.lnum = -1
+
+                        local lnum = pos[1]
+                        if fn.foldclosed(lnum) > 0 then
+                            fold_info.lnum = lnum
+                            fold_info.level = fn.foldlevel(lnum)
+                            cmd('norm! zv')
+                        end
+                    end
                     render_lens(bufnr, idx, res.total, pos)
                 else
                     clear_lens(bufnr)
@@ -164,7 +171,7 @@ function M.search_attach()
     end
 
     if vim.o.fdo:find('search') and vim.wo.foldenable then
-        should_fold = true
+        fold_info = {lnum = -1}
     end
 
     last_cmdl = ''
@@ -221,15 +228,10 @@ function M.search_changed()
 end
 
 function M.search_detach()
-    local cmdl = fn.getcmdline()
-    if cmdl == '' then
-        cmdl = fn.getreg('/')
-    end
     last_off = parse_off(last_off)
 
     last_cmdl = nil
     cmd_type = nil
-    should_fold = false
 
     on_key(nil, ns)
 
@@ -239,6 +241,11 @@ function M.search_detach()
             timer:close()
         end
     end
+
+    if fold_info and vim.v.event.abort then
+        close_fold(fold_info.level, fold_info.lnum)
+    end
+    fold_info = nil
 end
 
 function M.off(pat)
@@ -246,6 +253,18 @@ function M.off(pat)
         last_off = ''
     end
     return last_off
+end
+
+local function init()
+    DUMMY_POS = {1, 1}
+    last_pat = ''
+    last_off = ''
+    last_mul = false
+    skip = false
+    ns = api.nvim_create_namespace('hlslens')
+    incsearch = config.enable_incsearch
+    fold_info = nil
+    on_key = vim.on_key and vim.on_key or vim.register_keystroke_callback
 end
 
 init()
