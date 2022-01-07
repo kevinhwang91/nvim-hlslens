@@ -3,6 +3,7 @@ local M = {}
 local api = vim.api
 local fn = vim.fn
 
+local config = require('hlslens.config')
 local utils = require('hlslens.utils')
 
 local bufs
@@ -57,6 +58,11 @@ function M.build(cur_bufnr, pat)
 
     local plist = {start_pos = start_pos_list, end_pos = end_pos_list}
     local cache = build_cache(cur_bufnr, pat, plist)
+
+    if type(config.build_position_cb) == 'function' then
+        pcall(config.build_position_cb, cache.plist, cur_bufnr, cache.changedtick, cache.pattern)
+    end
+
     return cache.plist
 end
 
