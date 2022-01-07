@@ -140,11 +140,28 @@ root = {
         `:h nvim_buf_set_extmark` for more details]],
         default = 100,
     },
+    build_position_cb = {
+        description = [[A callback function after position list is built,
+            if `changedtick` or `pattern` is changed, position list will be rebuild and fire this callback.
+            @param plist (table) {start_pos = {}, end_pos = {}} (1,1)-indexed position
+            @param bufnr (number) buffer number
+            @param changedtick (number) `h b:changedtick`
+            @param pattern (string) search pattern
+        ]],
+        default = nil
+    },
     override_lens  = {
         description = [[Hackable function for customizing the lens. If you like hacking, you
             should search `override_lens` and inspect the corresponding source code.
             There's no guarantee that this function will not be changed in the future. If it is
-            changed, it will be listed in the CHANGES file.]],
+            changed, it will be listed in the CHANGES file.
+            @param bufnr (number) buffer number
+            @param splist (table) (1,1)-indexed position
+            @param nearest (boolean) whether nearest lens
+            @param idx (number) nearest index in the plist
+            @param r_idx (number) relative index, negative means before current position,
+                                  positive means after
+        ]],
         default = nil
     },
 }

@@ -96,7 +96,7 @@ end
 
 -- Add lens template, can be overrided by `override_lens`
 -- @param bufnr (number) buffer number
--- @param splist (table) (1,1)-indexed position list
+-- @param splist (table) (1,1)-indexed position
 -- @param nearest (boolean) whether nearest lens
 -- @param idx (number) nearest index in the plist
 -- @param r_idx (number) relative index, negative means before current position, positive means after
