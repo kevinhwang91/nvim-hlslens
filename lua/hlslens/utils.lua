@@ -4,13 +4,21 @@ local api = vim.api
 local cmd = vim.cmd
 local uv = vim.loop
 
-local wffi = require('hlslens.wffi')
+M.is_windows = (function()
+    local cache
+    return function()
+        if cache == nil then
+            cache = uv.os_uname().sysname == 'Windows_NT'
+        end
+        return cache
+    end
+end)()
 
 M.jit_enabled = (function()
     local enabled
     return function()
         if enabled == nil then
-            enabled = jit and uv.os_uname().sysname ~= 'Windows_NT'
+            enabled = jit and (not M.is_windows() or fn.has('nvim-0.6') == 1)
         end
         return enabled
     end
@@ -52,11 +60,10 @@ end
 
 function M.textoff(winid)
     local textoff
+    local wffi = require('hlslens.wffi')
     vim.validate({winid = {winid, 'number'}})
     if M.jit_enabled() then
-        textoff = M.win_execute(winid, function()
-            return wffi.curwin_col_off()
-        end)
+        textoff = M.win_execute(winid, wffi.curwin_col_off)
     else
         textoff = fn.getwininfo(winid)[1].textoff
     end
