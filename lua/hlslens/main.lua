@@ -132,29 +132,40 @@ function M.refresh(force)
         return
     end
 
-    local pinfo = position.nearest_idx_info(plist)
+    local c_off
+    local hist_search = fn.histget('/')
+    if hist_search ~= pattern then
+        local delim = vim.v.searchforward == 1 and '/' or '?'
+        local sects = vim.split(hist_search, delim)
+        if #sects > 1 then
+            local p = sects[#sects - 1]
+            if p == '' or p == pattern then
+                c_off = sects[#sects]
+            end
+        end
+    end
 
-    local c_off = cmdls.off(pattern)
+    local pinfo = position.nearest_idx_info(plist, c_off)
 
-    local pos_e = pinfo.pos_e
-    local r_idx_e = pinfo.r_idx_e
-    local pos_s = pinfo.pos_s
-    local r_idx_s = pinfo.r_idx_s
+    local s_pos = pinfo.s_pos
+    local e_pos = pinfo.e_pos
+    local c_pos = pinfo.c_pos
+    local o_pos = pinfo.o_pos
 
-    local n_idx = pinfo.idx
-    local nr_idx = c_off == 'e' and pinfo.r_idx_e or pinfo.r_idx_s
+    local idx = pinfo.idx
+    local r_idx = pinfo.r_idx
 
     local hit
     if not force and t_bufnr == bufnr then
-        hit = position.hit_cache(bufnr, pattern, n_idx, nr_idx)
+        hit = position.hit_cache(bufnr, pattern, idx, r_idx)
         if hit and not calm_down then
             return
         end
     end
-    position.update_cache(bufnr, pattern, n_idx, nr_idx)
+    position.update_cache(bufnr, pattern, idx, r_idx)
 
     if calm_down then
-        if r_idx_s > 0 or r_idx_e < 0 then
+        if not position.in_range(s_pos, e_pos, c_pos) then
             vim.schedule(function()
                 cmd('noh')
                 reset()
@@ -165,8 +176,8 @@ function M.refresh(force)
         end
     end
 
-    render.add_win_hl(0, pos_s, pos_e)
-    render.do_lens(splist, c_off ~= '' and not c_off:match('^[se]'), n_idx, nr_idx)
+    render.add_win_hl(0, s_pos, e_pos)
+    render.do_lens(splist, #o_pos == 0, idx, r_idx)
 end
 
 function M.start(force)

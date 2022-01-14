@@ -121,15 +121,107 @@ local function nearest_index(plist, c_pos, topl, botl)
     return idx, r_idx
 end
 
-function M.nearest_idx_info(plist)
+function M.pos_off(s, e, obyte)
+    local sl, sc = unpack(s)
+    local el, ec = unpack(e)
+    local ol, oc
+    local forward = obyte > 0 and true or false
+    obyte = math.abs(obyte)
+    if sl == el then
+        ol = sl
+        if forward then
+            oc = sc + obyte
+            if oc > ec then
+                oc = -1
+            end
+        else
+            oc = ec - obyte
+            if oc < sc then
+                oc = -1
+            end
+        end
+    else
+        local lines = api.nvim_buf_get_lines(0, sl - 1, el, true)
+        local len = #lines
+        local first = lines[1]
+        lines[1] = first:sub(sc)
+        local last = lines[len]
+        lines[len] = last:sub(1, ec)
+        if forward then
+            ol = sl
+            oc = sc
+            for i = 1, len do
+                local l = lines[i]
+                if #l <= obyte then
+                    ol = ol + 1
+                    oc = 1
+                    obyte = obyte - #l
+                else
+                    oc = oc + obyte
+                    break
+                end
+            end
+            if ol > el then
+                oc = -1
+            end
+        else
+            ol = el
+            for i = len, 1, -1 do
+                local l = lines[i]
+                if #l <= obyte then
+                    ol = ol - 1
+                    oc = -1
+                    obyte = obyte - #l
+                else
+                    oc = #l - obyte
+                    break
+                end
+            end
+            if ol == sl then
+                oc = oc + sc - 1
+            end
+        end
+    end
+    return oc == -1 and {} or {ol, oc}
+end
+
+function M.nearest_idx_info(plist, off)
     local wv = fn.winsaveview()
     local c_pos = {wv.lnum, wv.col + 1}
     local topl = wv.topline
-    local idx, r_idx_s = nearest_index(plist, c_pos, topl)
-    local pos_s = plist.start_pos[idx]
-    local pos_e = plist.end_pos[idx]
-    local r_idx_e = utils.compare_pos(pos_e, c_pos)
-    return {idx = idx, r_idx_s = r_idx_s, r_idx_e = r_idx_e, pos_s = pos_s, pos_e = pos_e}
+    local idx, r_idx = nearest_index(plist, c_pos, topl)
+    local s_pos = plist.start_pos[idx]
+    local e_pos = plist.end_pos[idx]
+
+    local o_pos = {}
+    if off and not off ~= '' then
+        local obyte
+        if off:match('^e%-?') then
+            obyte = off:match('%-%d+', 1)
+            if not obyte and off:sub(2, 2) ~= '+' then
+                o_pos = e_pos
+            end
+        elseif off:match('^s%+?') and off:sub(2, 2) ~= '-' then
+            obyte = off:match('%+%d+', 1)
+            if not obyte then
+                o_pos = s_pos
+            end
+        end
+        if obyte then
+            obyte = tonumber(obyte)
+            o_pos = M.pos_off(s_pos, e_pos, obyte)
+        end
+        if o_pos and not vim.tbl_isempty(o_pos) then
+            r_idx = utils.compare_pos(o_pos, c_pos)
+        end
+    else
+        o_pos = s_pos
+    end
+    return {idx = idx, r_idx = r_idx, c_pos = c_pos, s_pos = s_pos, e_pos = e_pos, o_pos = o_pos}
+end
+
+function M.in_range(s, e, c)
+    return utils.compare_pos(s, c) <= 0 and utils.compare_pos(c, e) <= 0
 end
 
 local function init()

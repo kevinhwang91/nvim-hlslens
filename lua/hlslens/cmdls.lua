@@ -248,13 +248,6 @@ function M.search_detach()
     fold_info = nil
 end
 
-function M.off(pat)
-    if pat ~= last_pat then
-        last_off = ''
-    end
-    return last_off
-end
-
 local function init()
     DUMMY_POS = {1, 1}
     last_pat = ''

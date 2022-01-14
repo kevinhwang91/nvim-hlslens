@@ -33,7 +33,7 @@ function M.bin_search(items, e, comp)
         r = comp(items[mid], e)
         if r == 0 then
             break
-        elseif r == 1 then
+        elseif r > 0 then
             max = mid - 1
         else
             min = mid + 1
@@ -46,15 +46,11 @@ function M.compare_pos(p1, p2)
     if p1[1] == p2[1] then
         if p1[2] == p2[2] then
             return 0
-        elseif p1[2] > p2[2] then
-            return 1
         else
-            return -1
+            return p1[2] > p2[2] and 1 or -1
         end
-    elseif p1[1] > p2[1] then
-        return 1
     else
-        return -1
+        return p1[1] > p2[1] and 1 or -1
     end
 end
 
