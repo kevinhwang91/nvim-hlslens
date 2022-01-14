@@ -166,7 +166,7 @@ function M.refresh(force)
     end
 
     render.add_win_hl(0, pos_s, pos_e)
-    render.do_lens(splist, c_off ~= '' and c_off ~= 's' and c_off ~= 'e', n_idx, nr_idx)
+    render.do_lens(splist, c_off ~= '' and not c_off:match('^[se]'), n_idx, nr_idx)
 end
 
 function M.start(force)
