@@ -243,29 +243,43 @@ require('hlslens').setup({
 
 ### Integrate with other plugins
 
+#### [vim-asterisk](https://github.com/haya14busa/vim-asterisk)
+##### Installation
+```
+" vim-plug:
+Plug 'mg979/vim-visual-multi', {'branch': 'master'}
+
+" packer:
+use('mg979/vim-visual-multi')
+```
+##### Usage
+Update these keymaps:
 ```vim
-" vimscript
-call plug#begin('~/.config/nvim/plugged')
-
-Plug 'kevinhwang91/nvim-hlslens'
-
-" integrate with vim-asterisk
-Plug 'haya14busa/vim-asterisk'
 map *  <Plug>(asterisk-z*)<Cmd>lua require('hlslens').start()<CR>
 map #  <Plug>(asterisk-z#)<Cmd>lua require('hlslens').start()<CR>
 map g* <Plug>(asterisk-gz*)<Cmd>lua require('hlslens').start()<CR>
 map g# <Plug>(asterisk-gz#)<Cmd>lua require('hlslens').start()<CR>
+```
 
-" integrate with vim-visual-multi
-Plug 'mg979/vim-visual-multi'
+#### [vim-visual-multi](https://github.com/mg979/vim-visual-multi)
+##### Installation
+```
+" vim-plug:
+Plug 'haya14busa/vim-asterisk'
+
+" packer:
+use('haya14busa/vim-asterisk')
+```
+##### Usage
+Add this auto-command:
+```vim
 aug VMlens
     au!
     au User visual_multi_start lua require('vmlens').start()
     au User visual_multi_exit lua require('vmlens').exit()
 aug END
-
-call plug#end()
 ```
+<https://user-images.githubusercontent.com/17562139/144655345-9185df0e-e27e-4877-9ee6-d0acb811c907.mp4>
 
 Add vmlens.lua under your lua path, for instance: `~/.config/nvim/lua/vmlens.lua`
 
@@ -309,8 +323,6 @@ end
 
 return M
 ```
-
-<https://user-images.githubusercontent.com/17562139/144655345-9185df0e-e27e-4877-9ee6-d0acb811c907.mp4>
 
 ## Feedback
 
