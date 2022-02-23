@@ -23,6 +23,8 @@ nvim-hlslens helps you better glance at matched information, seamlessly jump bet
   * [Customize configuration](#customize-configuration)
   * [Customize virtual text](#customize-virtual-text)
   * [Integrate with other plugins](#integrate-with-other-plugins)
+    * [vim-asterisk](https://github.com/haya14busa/vim-asterisk)
+    * [vim-visual-multi](https://github.com/mg979/vim-visual-multi)
 * [Feedback](#feedback)
 * [License](#license)
 
@@ -44,12 +46,6 @@ nvim-hlslens helps you better glance at matched information, seamlessly jump bet
 
 ### Installation
 
-Install nvim-hlslens with [Vim-plug](https://github.com/junegunn/vim-plug):
-
-```vim
-Plug 'kevinhwang91/nvim-hlslens'
-```
-
 Install nvim-hlslens with [Packer.nvim](https://github.com/wbthomason/packer.nvim):
 
 ```lua
@@ -58,40 +54,26 @@ use {'kevinhwang91/nvim-hlslens'}
 
 ### Minimal configuration
 
-vimscript :
-```vim
-noremap <silent> n <Cmd>execute('normal! ' . v:count1 . 'n')<CR>
-            \<Cmd>lua require('hlslens').start()<CR>
-noremap <silent> N <Cmd>execute('normal! ' . v:count1 . 'N')<CR>
-            \<Cmd>lua require('hlslens').start()<CR>
-noremap * *<Cmd>lua require('hlslens').start()<CR>
-noremap # #<Cmd>lua require('hlslens').start()<CR>
-noremap g* g*<Cmd>lua require('hlslens').start()<CR>
-noremap g# g#<Cmd>lua require('hlslens').start()<CR>
+``` lua
+local kopts = {noremap = true, silent = true}
 
-" use : instead of <Cmd>
-nnoremap <silent> <leader>l :noh<CR>
-```
-lua :
-```lua
-vim.api.nvim_set_keymap(
-	"n",
-	"n",
-	"<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>",
-	{ noremap = true, silent = true }
-)
-vim.api.nvim_set_keymap(
-	"n",
-	"N",
-	"<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>",
-	{ noremap = true, silent = true }
-)
-vim.api.nvim_set_keymap("n", "*", "*<Cmd>lua require('hlslens').start()<CR>", { noremap = true })
-vim.api.nvim_set_keymap("n", "#", "#<Cmd>lua require('hlslens').start()<CR>", { noremap = true })
-vim.api.nvim_set_keymap("n", "g*", "g*<Cmd>lua require('hlslens').start()<CR>", { noremap = true })
-vim.api.nvim_set_keymap("n", "g#", "g#<Cmd>lua require('hlslens').start()<CR>", { noremap = true })
+vim.api.nvim_set_keymap('n', 'n',
+    [[<Cmd>execute('normal! ' . v:count1 . 'n')<CR><Cmd>lua require('hlslens').start()<CR>]],
+    kopts)
+vim.api.nvim_set_keymap('n', 'N',
+    [[<Cmd>execute('normal! ' . v:count1 . 'N')<CR><Cmd>lua require('hlslens').start()<CR>]],
+    kopts)
+vim.api.nvim_set_keymap('n', '*', [[*<Cmd>lua require('hlslens').start()<CR>]], kopts)
+vim.api.nvim_set_keymap('n', '#', [[#<Cmd>lua require('hlslens').start()<CR>]], kopts)
+vim.api.nvim_set_keymap('n', 'g*', [[g*<Cmd>lua require('hlslens').start()<CR>]], kopts)
+vim.api.nvim_set_keymap('n', 'g#', [[g#<Cmd>lua require('hlslens').start()<CR>]], kopts)
 
-vim.api.nvim_set_keymap("n", "<leader>l", ":noh<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('x', '*', [[*<Cmd>lua require('hlslens').start()<CR>]], kopts)
+vim.api.nvim_set_keymap('x', '#', [[#<Cmd>lua require('hlslens').start()<CR>]], kopts)
+vim.api.nvim_set_keymap('x', 'g*', [[g*<Cmd>lua require('hlslens').start()<CR>]], kopts)
+vim.api.nvim_set_keymap('x', 'g#', [[g#<Cmd>lua require('hlslens').start()<CR>]], kopts)
+
+vim.api.nvim_set_keymap('n', '<Leader>l', ':noh<CR>', kopts)
 ```
 
 ### Usage
@@ -124,7 +106,7 @@ Hlslens will observe whether `nohlsearch` command is accepted.
 ### Setup and description
 
 ```lua
-root = {
+{
     auto_enable = {
         description = [[Enable nvim-hlslens automatically]],
         default = true
@@ -158,16 +140,6 @@ root = {
         description = [[Priority of virtual text, set it lower to overlay others.
         `:h nvim_buf_set_extmark` for more details]],
         default = 100,
-    },
-    build_position_cb = {
-        description = [[A callback function after position list is built,
-            if `changedtick` or `pattern` is changed, position list will be rebuild and fire this callback.
-            @param plist (table) {start_pos = {}, end_pos = {}} (1,1)-indexed position
-            @param bufnr (number) buffer number
-            @param changedtick (number) `h b:changedtick`
-            @param pattern (string) search pattern
-        ]],
-        default = nil
     },
     override_lens  = {
         description = [[Hackable function for customizing the lens. If you like hacking, you
@@ -211,7 +183,6 @@ hi default link HlSearchFloat IncSearch
 ### Customize configuration
 
 ```lua
--- lua
 require('hlslens').setup({
     calm_down = true,
     nearest_only = true,
@@ -224,7 +195,6 @@ require('hlslens').setup({
 ### Customize virtual text
 
 ```lua
--- lua
 require('hlslens').setup({
     override_lens = function(render, plist, nearest, idx, r_idx)
         local sfw = vim.v.searchforward == 1
@@ -263,47 +233,42 @@ require('hlslens').setup({
 ### Integrate with other plugins
 
 #### [vim-asterisk](https://github.com/haya14busa/vim-asterisk)
-##### Installation
-```
-" vim-plug:
-Plug 'mg979/vim-visual-multi', {'branch': 'master'}
 
-" packer:
-use('mg979/vim-visual-multi')
-```
-##### Usage
-Update these keymaps:
-```vim
-map *  <Plug>(asterisk-z*)<Cmd>lua require('hlslens').start()<CR>
-map #  <Plug>(asterisk-z#)<Cmd>lua require('hlslens').start()<CR>
-map g* <Plug>(asterisk-gz*)<Cmd>lua require('hlslens').start()<CR>
-map g# <Plug>(asterisk-gz#)<Cmd>lua require('hlslens').start()<CR>
+```lua
+-- packer
+use 'haya14busa/vim-asterisk'
+
+vim.api.nvim_set_keymap('n', '*', [[<Plug>(asterisk-z*)<Cmd>lua require('hlslens').start()<CR>]], {})
+vim.api.nvim_set_keymap('n', '#', [[<Plug>(asterisk-z#)<Cmd>lua require('hlslens').start()<CR>]], {})
+vim.api.nvim_set_keymap('n', 'g*', [[<Plug>(asterisk-gz*)<Cmd>lua require('hlslens').start()<CR>]], {})
+vim.api.nvim_set_keymap('n', 'g#', [[<Plug>(asterisk-gz#)<Cmd>lua require('hlslens').start()<CR>]], {})
+
+vim.api.nvim_set_keymap('x', '*', [[<Plug>(asterisk-z*)<Cmd>lua require('hlslens').start()<CR>]], {})
+vim.api.nvim_set_keymap('x', '#', [[<Plug>(asterisk-z#)<Cmd>lua require('hlslens').start()<CR>]], {})
+vim.api.nvim_set_keymap('x', 'g*', [[<Plug>(asterisk-gz*)<Cmd>lua require('hlslens').start()<CR>]], {})
+vim.api.nvim_set_keymap('x', 'g#', [[<Plug>(asterisk-gz#)<Cmd>lua require('hlslens').start()<CR>]], {})
 ```
 
 #### [vim-visual-multi](https://github.com/mg979/vim-visual-multi)
-##### Installation
-```
-" vim-plug:
-Plug 'haya14busa/vim-asterisk'
 
-" packer:
-use('haya14busa/vim-asterisk')
-```
-##### Usage
-Add this auto-command:
-```vim
-aug VMlens
-    au!
-    au User visual_multi_start lua require('vmlens').start()
-    au User visual_multi_exit lua require('vmlens').exit()
-aug END
-```
 <https://user-images.githubusercontent.com/17562139/144655345-9185df0e-e27e-4877-9ee6-d0acb811c907.mp4>
+
+```lua
+-- packer
+use 'mg979/vim-visual-multi'
+
+vim.cmd([[
+    aug VMlens
+        au!
+        au User visual_multi_start lua require('vmlens').start()
+        au User visual_multi_exit lua require('vmlens').exit()
+    aug END
+]])
+```
 
 Add vmlens.lua under your lua path, for instance: `~/.config/nvim/lua/vmlens.lua`
 
 ```lua
--- lua
 local M = {}
 local hlslens = require('hlslens')
 local config
