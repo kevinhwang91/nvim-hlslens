@@ -93,7 +93,7 @@ function M.enable()
         if api.nvim_get_mode().mode == 'c' then
             M.cmdl_search_enter()
         end
-        if vim.v.hlsearch == 1 then
+        if vim.v.hlsearch == 1 and fn.getreg('/') ~= '' then
             M.start()
         end
     end
@@ -121,6 +121,7 @@ function M.refresh(force)
     local bufnr = api.nvim_get_current_buf()
     local pattern = fn.getreg('/')
     if pattern == '' then
+        reset()
         return
     end
 
