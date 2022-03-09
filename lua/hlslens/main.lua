@@ -41,7 +41,7 @@ local function autocmd(initial)
                 au CmdlineEnter /,\? lua require('hlslens.main').cmdl_search_enter()
                 au CmdlineChanged /,\? lua require('hlslens.main').cmdl_search_changed()
                 au CmdlineLeave /,\? lua require('hlslens.main').cmdl_search_leave()
-                au CmdlineLeave : lua require('hlslens.main').observe_noh()
+                au CmdlineLeave : lua require('hlslens.main').observe_cmdl_leave()
                 au CursorMoved * lua require('hlslens.main').refresh()
                 au WinEnter,TermLeave,VimResized * lua require('hlslens.main').refresh(true)
                 au TermEnter * lua require('hlslens.main').clear_cur_lens()
@@ -118,8 +118,11 @@ function M.refresh(force)
         return
     end
 
-    local pattern = fn.getreg('/')
     local bufnr = api.nvim_get_current_buf()
+    local pattern = fn.getreg('/')
+    if pattern == '' then
+        return
+    end
 
     local plist = position.build(bufnr, pattern)
     local splist = plist.start_pos
@@ -187,17 +190,24 @@ function M.start(force)
     end
 end
 
-function M.observe_noh()
+function M.observe_cmdl_leave()
     if not vim.v.event.abort then
         local cmdl = vim.trim(fn.getcmdline())
         if #cmdl > 2 then
             for _, cl in ipairs(vim.split(cmdl, '|')) do
                 if ('nohlsearch'):match(vim.trim(cl)) then
                     vim.schedule(reset)
-                    break
+                    return
                 end
             end
         end
+
+        vim.schedule(function()
+            local pattern = fn.getreg('/')
+            if pattern == '' then
+                reset()
+            end
+        end)
     end
 end
 
