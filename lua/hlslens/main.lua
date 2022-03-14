@@ -142,7 +142,7 @@ function M.refresh(force)
         local delim = vim.v.searchforward == 1 and '/' or '?'
         local sects = vim.split(hist_search, delim)
         if #sects > 1 then
-            local p = sects[#sects - 1]
+            local p = table.concat(sects, delim, 1, #sects - 1)
             if p == '' or p == pattern then
                 c_off = sects[#sects]
             end
