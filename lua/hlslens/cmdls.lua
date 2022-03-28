@@ -29,7 +29,7 @@ local on_key
 
 local function refresh_lens()
     -- ^R ^[
-    api.nvim_feedkeys(('%c%c'):format(0x12, 0x1b), 'n', false)
+    api.nvim_feedkeys(('%c%c'):format(0x12, 0x1b), 'in', false)
 end
 
 local function fill_dummy_list(cnt)
