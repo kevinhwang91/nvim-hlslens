@@ -10,13 +10,13 @@ local config = require('hlslens.config')
 
 local STATE = {START = 0, STOP = 1}
 local status
-local last_bufnr
-local calm_down
+local lastBufnr
+local calmDown
 
 local function init()
-    calm_down = config.calm_down
+    calmDown = config.calm_down
     status = STATE.STOP
-    last_bufnr = -1
+    lastBufnr = -1
 end
 
 local function reset()
@@ -29,46 +29,46 @@ local function autocmd(initial)
         cmd([[
             aug HlSearchLens
                 au!
-                au CmdlineEnter /,\? lua require('hlslens.main').cmdl_search_enter()
-                au CmdlineChanged /,\? lua require('hlslens.main').cmdl_search_changed()
-                au CmdlineLeave /,\? lua require('hlslens.main').cmdl_search_leave()
+                au CmdlineEnter /,\? lua require('hlslens.main').cmdLineSearchEnter()
+                au CmdlineChanged /,\? lua require('hlslens.main').cmdLineSearChanged()
+                au CmdlineLeave /,\? lua require('hlslens.main').cmdLineSearchLeave()
             aug END
         ]])
     else
         cmd([[
             aug HlSearchLens
                 au!
-                au CmdlineEnter /,\? lua require('hlslens.main').cmdl_search_enter()
-                au CmdlineChanged /,\? lua require('hlslens.main').cmdl_search_changed()
-                au CmdlineLeave /,\? lua require('hlslens.main').cmdl_search_leave()
-                au CmdlineLeave : lua require('hlslens.main').observe_cmdl_leave()
+                au CmdlineEnter /,\? lua require('hlslens.main').cmdLineSearchEnter()
+                au CmdlineChanged /,\? lua require('hlslens.main').cmdLineSearChanged()
+                au CmdlineLeave /,\? lua require('hlslens.main').cmdLineSearchLeave()
+                au CmdlineLeave : lua require('hlslens.main').observeCmdLineLeave()
                 au CursorMoved * lua require('hlslens.main').refresh()
                 au WinEnter,TermLeave,VimResized * lua require('hlslens.main').refresh(true)
-                au TermEnter * lua require('hlslens.main').clear_cur_lens()
+                au TermEnter * lua require('hlslens.main').clearCurLens()
             aug END
         ]])
     end
 end
 
-local function may_initialize()
+local function mayInitialize()
     if status == STATE.STOP then
         autocmd()
         status = STATE.START
     end
 end
 
-function M.cmdl_search_enter()
-    cmdls.search_attach()
+function M.cmdLineSearchEnter()
+    cmdls.searchAttach()
 end
 
-function M.cmdl_search_changed()
-    cmdls.search_changed()
+function M.cmdLineSearChanged()
+    cmdls.searchChanged()
 end
 
-function M.cmdl_search_leave()
-    cmdls.search_detach()
+function M.cmdLineSearchLeave()
+    cmdls.searchDetach()
     if vim.o.hlsearch then
-        may_initialize()
+        mayInitialize()
         vim.schedule(function()
             M.refresh(true)
         end)
@@ -79,19 +79,19 @@ function M.status()
     return status
 end
 
-function M.clear_cur_lens()
+function M.clearCurLens()
     render.clear(true, 0, true)
 end
 
-function M.clear_lens()
-    render.clear_all()
+function M.clearLens()
+    render.clearAll()
 end
 
 function M.enable()
     if status == STATE.STOP then
         autocmd(true)
         if api.nvim_get_mode().mode == 'c' then
-            M.cmdl_search_enter()
+            M.cmdLineSearchEnter()
         end
         if vim.v.hlsearch == 1 and fn.getreg('/') ~= '' then
             M.start()
@@ -100,7 +100,7 @@ function M.enable()
 end
 
 function M.disable()
-    M.clear_lens()
+    M.clearLens()
     position.clear()
     cmd('sil! au! HlSearchLens')
     status = STATE.STOP
@@ -125,51 +125,51 @@ function M.refresh(force)
         return
     end
 
-    local plist = position.build(bufnr, pattern)
-    local splist = plist.start_pos
+    local posList = position.build(bufnr, pattern)
+    local splist = posList.startPos
 
-    local t_bufnr = last_bufnr
-    last_bufnr = bufnr
+    local tmpBufnr = lastBufnr
+    lastBufnr = bufnr
 
     if #splist == 0 then
         render.clear(true, bufnr, true)
         return
     end
 
-    local c_off
-    local hist_search = fn.histget('/')
-    if hist_search ~= pattern then
+    local curOffset
+    local histSearch = fn.histget('/')
+    if histSearch ~= pattern then
         local delim = vim.v.searchforward == 1 and '/' or '?'
-        local sects = vim.split(hist_search, delim)
+        local sects = vim.split(histSearch, delim)
         if #sects > 1 then
             local p = table.concat(sects, delim, 1, #sects - 1)
             if p == '' or p == pattern then
-                c_off = sects[#sects]
+                curOffset = sects[#sects]
             end
         end
     end
 
-    local pinfo = position.nearest_idx_info(plist, c_off)
+    local posInfo = position.nearestIdxInfo(posList, curOffset)
 
-    local s_pos = pinfo.s_pos
-    local e_pos = pinfo.e_pos
-    local c_pos = pinfo.c_pos
-    local o_pos = pinfo.o_pos
+    local startPos = posInfo.startPos
+    local endPos = posInfo.endPos
+    local curPos = posInfo.curPos
+    local offsetPos = posInfo.offsetPos
 
-    local idx = pinfo.idx
-    local r_idx = pinfo.r_idx
+    local idx = posInfo.idx
+    local rIdx = posInfo.rIdx
 
     local hit
-    if not force and t_bufnr == bufnr then
-        hit = position.hit_cache(bufnr, pattern, idx, r_idx)
-        if hit and not calm_down then
+    if not force and tmpBufnr == bufnr then
+        hit = position.hitCache(bufnr, pattern, idx, rIdx)
+        if hit and not calmDown then
             return
         end
     end
-    position.update_cache(bufnr, pattern, idx, r_idx)
+    position.updateCache(bufnr, pattern, idx, rIdx)
 
-    if calm_down then
-        if not position.in_range(s_pos, e_pos, c_pos) then
+    if calmDown then
+        if not position.inRange(startPos, endPos, curPos) then
             vim.schedule(function()
                 cmd('noh')
                 reset()
@@ -180,18 +180,18 @@ function M.refresh(force)
         end
     end
 
-    render.add_win_hl(0, s_pos, e_pos)
-    render.do_lens(splist, #o_pos == 0, idx, r_idx)
+    render.addWinHighlight(0, startPos, endPos)
+    render.doLens(splist, #offsetPos == 0, idx, rIdx)
 end
 
 function M.start(force)
     if vim.o.hlsearch then
-        may_initialize()
+        mayInitialize()
         M.refresh(force)
     end
 end
 
-function M.observe_cmdl_leave()
+function M.observeCmdLineLeave()
     if not vim.v.event.abort then
         local cmdl = vim.trim(fn.getcmdline())
         if #cmdl > 2 then

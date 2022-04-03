@@ -145,7 +145,7 @@ Hlslens will observe whether `nohlsearch` command is accepted.
             @param splist (table) (1,1)-indexed position
             @param nearest (boolean) whether nearest lens
             @param idx (number) nearest index in the plist
-            @param r_idx (number) relative index, negative means before current position,
+            @param relIdx (number) relative index, negative means before current position,
                                   positive means after
         ]],
         default = nil
@@ -191,21 +191,21 @@ require('hlslens').setup({
 
 ```lua
 require('hlslens').setup({
-    override_lens = function(render, plist, nearest, idx, r_idx)
+    override_lens = function(render, posList, nearest, idx, relIdx)
         local sfw = vim.v.searchforward == 1
         local indicator, text, chunks
-        local abs_r_idx = math.abs(r_idx)
-        if abs_r_idx > 1 then
-            indicator = ('%d%s'):format(abs_r_idx, sfw ~= (r_idx > 1) and '▲' or '▼')
-        elseif abs_r_idx == 1 then
-            indicator = sfw ~= (r_idx == 1) and '▲' or '▼'
+        local absRelIdx = math.abs(relIdx)
+        if absRelIdx > 1 then
+            indicator = ('%d%s'):format(absRelIdx, sfw ~= (relIdx > 1) and '▲' or '▼')
+        elseif absRelIdx == 1 then
+            indicator = sfw ~= (relIdx == 1) and '▲' or '▼'
         else
             indicator = ''
         end
 
-        local lnum, col = unpack(plist[idx])
+        local lnum, col = unpack(posList[idx])
         if nearest then
-            local cnt = #plist
+            local cnt = #posList
             if indicator ~= '' then
                 text = ('[%s %d/%d]'):format(indicator, idx, cnt)
             else
@@ -216,7 +216,7 @@ require('hlslens').setup({
             text = ('[%s %d]'):format(indicator, idx)
             chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
         end
-        render.set_virt(0, lnum - 1, col - 1, chunks, nearest)
+        render.setVirt(0, lnum - 1, col - 1, chunks, nearest)
     end
 })
 ```
@@ -267,35 +267,35 @@ Add vmlens.lua under your lua path, for instance: `~/.config/nvim/lua/vmlens.lua
 local M = {}
 local hlslens = require('hlslens')
 local config
-local lens_backup
+local lensBak
 
-local override_lens = function(render, plist, nearest, idx, r_idx)
-    local _ = r_idx
-    local lnum, col = unpack(plist[idx])
+local overrideLens = function(render, posList, nearest, idx, relIdx)
+    local _ = relIdx
+    local lnum, col = unpack(posList[idx])
 
     local text, chunks
     if nearest then
-        text = ('[%d/%d]'):format(idx, #plist)
+        text = ('[%d/%d]'):format(idx, #posList)
         chunks = {{' ', 'Ignore'}, {text, 'VM_Extend'}}
     else
         text = ('[%d]'):format(idx)
         chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
     end
-    render.set_virt(0, lnum - 1, col - 1, chunks, nearest)
+    render.setVirt(0, lnum - 1, col - 1, chunks, nearest)
 end
 
 function M.start()
     if hlslens then
         config = require('hlslens.config')
-        lens_backup = config.override_lens
-        config.override_lens = override_lens
+        lensBak = config.override_lens
+        config.override_lens = overrideLens
         hlslens.start(true)
     end
 end
 
 function M.exit()
     if hlslens then
-        config.override_lens = lens_backup
+        config.override_lens = lensBak
         hlslens.start(true)
     end
 end

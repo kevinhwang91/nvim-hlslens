@@ -7,13 +7,13 @@ local config = require('hlslens.config')
 local utils = require('hlslens.utils')
 
 local bufs
-local jit_enabled
-local range_module
+local jitEnabled
+local rangeModule
 local limit
 
-local function build_cache(bufnr, pattern, plist)
+local function buildCache(bufnr, pattern, posList)
     local c = {
-        plist = plist or {},
+        posList = posList or {},
         changedtick = api.nvim_buf_get_changedtick(bufnr),
         pattern = pattern
     }
@@ -24,28 +24,29 @@ local function build_cache(bufnr, pattern, plist)
     return c
 end
 
-function M.hit_cache(bufnr, pattern, n_idx, nr_idx)
+function M.hitCache(bufnr, pattern, nearestIdx, nearestRelIdx)
     local c = bufs[bufnr]
-    return c and pattern == c.pattern and n_idx == c.n_idx and nr_idx == c.nr_idx and
-               vim.v.searchforward == c.sfw
+    return c and pattern == c.pattern and nearestIdx == c.nIdx and nearestRelIdx == c.nrIdx and
+               vim.v.searchforward == c.searchForward
 end
 
-function M.update_cache(bufnr, pattern, n_idx, nr_idx)
+function M.updateCache(bufnr, pattern, nearestIdx, nearestRelIdx)
     local c = bufs[bufnr]
-    c.pattern, c.n_idx, c.nr_idx, c.sfw = pattern, n_idx, nr_idx, vim.v.searchforward
+    c.pattern, c.nIdx, c.nrIdx, c.searchForward = pattern, nearestIdx, nearestRelIdx,
+        vim.v.searchforward
 end
 
 -- make sure run under current buffer
-function M.build(cur_bufnr, pat)
-    cur_bufnr = cur_bufnr or api.nvim_get_current_buf()
-    local c = bufs[cur_bufnr] or {}
-    if c.changedtick == api.nvim_buf_get_changedtick(cur_bufnr) and c.pattern == pat then
-        return c.plist
+function M.build(curBufnr, pattern)
+    curBufnr = curBufnr or api.nvim_get_current_buf()
+    local c = bufs[curBufnr] or {}
+    if c.changedtick == api.nvim_buf_get_changedtick(curBufnr) and c.pattern == pattern then
+        return c.posList
     end
 
-    if not jit_enabled then
-        if not range_module.valid(pat) or vim.bo.bt == 'quickfix' or utils.is_cmdwin() then
-            return build_cache(cur_bufnr, pat, {start_pos = {}, end_pos = {}}).plist
+    if not jitEnabled then
+        if not rangeModule.valid(pattern) or vim.bo.bt == 'quickfix' or utils.isCmdLineWin() then
+            return buildCache(curBufnr, pattern, {startPos = {}, endPos = {}}).posList
         end
     end
 
@@ -54,56 +55,61 @@ function M.build(cur_bufnr, pat)
         bufs = {cnt = 0}
     end
 
-    local start_pos_list, end_pos_list = range_module.build_list(pat, limit)
+    local startPosList, endPosList = rangeModule.buildList(pattern, limit)
 
-    local plist = {start_pos = start_pos_list, end_pos = end_pos_list}
-    local cache = build_cache(cur_bufnr, pat, plist)
+    local posList = {startPos = startPosList, endPos = endPosList}
+    --TODO
+    --will remove start_pos and end_pos fields
+    posList.start_pos = posList.startPos
+    posList.end_pos = posList.endPos
+
+    local cache = buildCache(curBufnr, pattern, posList)
 
     if type(config.build_position_cb) == 'function' then
-        pcall(config.build_position_cb, cache.plist, cur_bufnr, cache.changedtick, cache.pattern)
+        pcall(config.build_position_cb, cache.posList, curBufnr, cache.changedtick, cache.pattern)
     end
 
-    return cache.plist
+    return cache.posList
 end
 
 function M.clear()
     bufs = {cnt = 0}
 end
 
-local function nearest_index(plist, c_pos, topl, botl)
-    local splist = plist.start_pos
-    local idx, r = utils.bin_search(splist, c_pos, utils.compare_pos)
-    local another_idx = idx - r
-    local r_idx = r
+local function nearestIndex(posList, curPos, topl, botl)
+    local spList = posList.startPos
+    local idx, r = utils.binSearch(spList, curPos, utils.comparePosition)
+    local anotherIdx = idx - r
+    local relIdx = r
 
-    if r ~= 0 and another_idx <= #splist and another_idx >= 1 then
-        local idx_lnum = splist[idx][1]
-        local another_idx_lnum = splist[idx - r][1]
-        local mid_lnum = math.ceil((idx_lnum + another_idx_lnum) / 2) - 1
-        local c_lnum = c_pos[1]
+    if r ~= 0 and anotherIdx <= #spList and anotherIdx >= 1 then
+        local idxLnum = spList[idx][1]
+        local anotherIdxLnum = spList[idx - r][1]
+        local midLnum = math.ceil((idxLnum + anotherIdxLnum) / 2) - 1
+        local curLnum = curPos[1]
 
         -- fn.line('w$') may be expensive while scrolling down
         topl = topl or fn.line('w0')
         if r == -1 then
-            if topl > idx_lnum then
-                r_idx = 1
-            elseif mid_lnum < c_lnum and (botl or fn.line('w$')) >= another_idx_lnum then
-                r_idx = 1
+            if topl > idxLnum then
+                relIdx = 1
+            elseif midLnum < curLnum and (botl or fn.line('w$')) >= anotherIdxLnum then
+                relIdx = 1
             end
         else
-            if topl <= another_idx_lnum then
-                if mid_lnum >= c_lnum or (botl or fn.line('w$')) < idx_lnum then
-                    r_idx = -1
+            if topl <= anotherIdxLnum then
+                if midLnum >= curLnum or (botl or fn.line('w$')) < idxLnum then
+                    relIdx = -1
                 end
             end
         end
-        if r_idx ~= r then
+        if relIdx ~= r then
             idx = idx - r
         end
 
-        if r_idx == 1 and idx > 1 then
+        if relIdx == 1 and idx > 1 then
             -- calibrate the nearest index, because index is based on start of the position
-            -- c_pos <= prev_i_pos_e < i_pos_s maybe happened
+            -- curPos <= previousIdxEndPos < idxStartPos maybe happened
             -- for instance:
             --     text: 1ab|c 2abc
             --     pattern: abc
@@ -111,17 +117,17 @@ local function nearest_index(plist, c_pos, topl, botl)
             -- nearest index locate at start of second 'abc',
             -- but current postion is between start of
             -- previous index postion and end of current index position
-            if utils.compare_pos(c_pos, plist.end_pos[idx - 1]) <= 0 then
+            if utils.comparePosition(curPos, posList.endPos[idx - 1]) <= 0 then
                 idx = idx - 1
-                r_idx = -1
+                relIdx = -1
             end
         end
     end
 
-    return idx, r_idx
+    return idx, relIdx
 end
 
-function M.pos_off(s, e, obyte)
+function M.getOffsetPos(s, e, obyte)
     local sl, sc = unpack(s)
     local el, ec = unpack(e)
     local ol, oc
@@ -185,50 +191,57 @@ function M.pos_off(s, e, obyte)
     return oc == -1 and {} or {ol, oc}
 end
 
-function M.nearest_idx_info(plist, off)
+function M.nearestIdxInfo(posList, off)
     local wv = fn.winsaveview()
-    local c_pos = {wv.lnum, wv.col + 1}
+    local curPos = {wv.lnum, wv.col + 1}
     local topl = wv.topline
-    local idx, r_idx = nearest_index(plist, c_pos, topl)
-    local s_pos = plist.start_pos[idx]
-    local e_pos = plist.end_pos[idx]
+    local idx, rIdx = nearestIndex(posList, curPos, topl)
+    local startPos = posList.startPos[idx]
+    local endPos = posList.endPos[idx]
 
-    local o_pos = {}
+    local offsetPos = {}
     if off and not off ~= '' then
         local obyte
         if off:match('^e%-?') then
             obyte = off:match('%-%d+', 1)
             if not obyte and off:sub(2, 2) ~= '+' then
-                o_pos = e_pos
+                offsetPos = endPos
             end
         elseif off:match('^s%+?') and off:sub(2, 2) ~= '-' then
             obyte = off:match('%+%d+', 1)
             if not obyte then
-                o_pos = s_pos
+                offsetPos = startPos
             end
         end
         if obyte then
             obyte = tonumber(obyte)
-            o_pos = M.pos_off(s_pos, e_pos, obyte)
+            offsetPos = M.getOffsetPos(startPos, endPos, obyte)
         end
-        if o_pos and not vim.tbl_isempty(o_pos) then
-            r_idx = utils.compare_pos(o_pos, c_pos)
+        if offsetPos and not vim.tbl_isempty(offsetPos) then
+            rIdx = utils.comparePosition(offsetPos, curPos)
         end
     else
-        o_pos = s_pos
+        offsetPos = startPos
     end
-    return {idx = idx, r_idx = r_idx, c_pos = c_pos, s_pos = s_pos, e_pos = e_pos, o_pos = o_pos}
+    return {
+        idx = idx,
+        rIdx = rIdx,
+        curPos = curPos,
+        startPos = startPos,
+        endPos = endPos,
+        offsetPos = offsetPos
+    }
 end
 
-function M.in_range(s, e, c)
-    return utils.compare_pos(s, c) <= 0 and utils.compare_pos(c, e) <= 0
+function M.inRange(s, e, c)
+    return utils.comparePosition(s, c) <= 0 and utils.comparePosition(c, e) <= 0
 end
 
 local function init()
     bufs = {cnt = 0}
-    jit_enabled = utils.jit_enabled()
-    limit = jit_enabled and 100000 or 10000
-    range_module = jit_enabled and require('hlslens.range.regex') or require('hlslens.range.qf')
+    jitEnabled = utils.jitEnabled()
+    limit = jitEnabled and 100000 or 10000
+    rangeModule = jitEnabled and require('hlslens.range.regex') or require('hlslens.range.qf')
 end
 
 init()

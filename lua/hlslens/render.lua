@@ -10,19 +10,19 @@ local winhl = require('hlslens.render.winhl')
 local extmark = require('hlslens.render.extmark')
 local floatwin = require('hlslens.render.floatwin')
 
-local virt_priority
-local nearest_only
-local nearest_float_when
-local float_shadow_blend
-local float_virt_id
+local virtPriority
+local nearestOnly
+local nearestFloatWhen
+local floatShadowBlend
+local floatVirtId
 
-local hl_blend_tbl
+local hlBlendTbl
 
 local function init()
-    virt_priority = config.virt_priority
-    nearest_only = config.nearest_only
-    nearest_float_when = config.nearest_float_when
-    float_shadow_blend = config.float_shadow_blend
+    virtPriority = config.virt_priority
+    nearestOnly = config.nearest_only
+    nearestFloatWhen = config.nearest_float_when
+    floatShadowBlend = config.float_shadow_blend
 
     cmd([[
         hi default link HlSearchNear IncSearch
@@ -31,27 +31,27 @@ local function init()
         hi default link HlSearchFloat IncSearch
     ]])
 
-    hl_blend_tbl = setmetatable({Ignore = 'Ignore'}, {
+    hlBlendTbl = setmetatable({Ignore = 'Ignore'}, {
         __index = function(tbl, hlgroup)
-            local new_hlgroup
+            local newHlGroup
             if vim.o.termguicolors then
-                new_hlgroup = 'HlSearchBlend_' .. hlgroup
-                local hl_cmd_tbl = {'hi ' .. new_hlgroup, 'blend=0'}
-                for k, v in pairs(utils.hl_attrs(hlgroup)) do
-                    table.insert(hl_cmd_tbl, ('%s=%s'):format(k, type(v) == 'table' and
+                newHlGroup = 'HlSearchBlend_' .. hlgroup
+                local hlCmdTbl = {'hi ' .. newHlGroup, 'blend=0'}
+                for k, v in pairs(utils.hlAttrs(hlgroup)) do
+                    table.insert(hlCmdTbl, ('%s=%s'):format(k, type(v) == 'table' and
                         table.concat(v, ',') or v))
                 end
-                cmd(table.concat(hl_cmd_tbl, ' '))
+                cmd(table.concat(hlCmdTbl, ' '))
             else
-                new_hlgroup = hlgroup
+                newHlGroup = hlgroup
             end
-            rawset(tbl, hlgroup, new_hlgroup)
+            rawset(tbl, hlgroup, newHlGroup)
             return rawget(tbl, hlgroup)
         end
     })
 end
 
-local function chunks2text(chunks)
+local function chunksToText(chunks)
     local text = ''
     for _, chunk in ipairs(chunks) do
         text = text .. chunk[1]
@@ -59,66 +59,66 @@ local function chunks2text(chunks)
     return text
 end
 
-local function enough_size4virt(winid, lnum, chunks, line_wid)
-    local text = chunks2text(chunks)
-    local end_vcol = utils.vcol(winid, {lnum, '$'}) - 1
-    local re_vcol
+local function enoughSizeForVirt(winid, lnum, chunks, lineWidth)
+    local text = chunksToText(chunks)
+    local endVcol = utils.vcol(winid, {lnum, '$'}) - 1
+    local remainingVcol
     if vim.wo[winid].wrap then
-        re_vcol = line_wid - (end_vcol - 1) % line_wid - 1
+        remainingVcol = lineWidth - (endVcol - 1) % lineWidth - 1
     else
-        re_vcol = math.max(0, line_wid - end_vcol)
+        remainingVcol = math.max(0, lineWidth - endVcol)
     end
-    return re_vcol > #text
+    return remainingVcol > #text
 end
 
-local function update_floatwin(winid, pos, chunks, line_wid, g_size)
+local function updateFloatWin(winid, pos, chunks, lineWidth, gutterSize)
     local width, height = api.nvim_win_get_width(winid), api.nvim_win_get_height(winid)
-    local f_col = utils.vcol(winid, pos) % line_wid + g_size - 1
-    local text = chunks2text(chunks)
+    local floatCol = utils.vcol(winid, pos) % lineWidth + gutterSize - 1
+    local text = chunksToText(chunks)
     if vim.o.termguicolors then
-        local f_win, f_buf = floatwin.update(height, 0, width)
-        vim.wo[f_win].winbl = float_shadow_blend
-        local padding = (' '):rep(math.min(f_col, width - #text) - 1)
-        local new_chunks = {{padding, 'Ignore'}}
+        local floatWin, floatBuf = floatwin.update(height, 0, width)
+        vim.wo[floatWin].winbl = floatShadowBlend
+        local padding = (' '):rep(math.min(floatCol, width - #text) - 1)
+        local newChunks = {{padding, 'Ignore'}}
         for _, chunk in ipairs(chunks) do
             local t, hlgroup = unpack(chunk)
             if not t:match('^%s+$') and hlgroup ~= 'Ignore' then
-                table.insert(new_chunks, {t, hl_blend_tbl[hlgroup]})
+                table.insert(newChunks, {t, hlBlendTbl[hlgroup]})
             end
         end
-        float_virt_id = extmark.set_virt_eol(f_buf, 0, new_chunks, virt_priority, float_virt_id)
+        floatVirtId = extmark.setVirtEol(floatBuf, 0, newChunks, virtPriority, floatVirtId)
     else
-        local f_win, f_buf = floatwin.update(height, f_col, #text)
-        vim.wo[f_win].winhl = 'Normal:HlSearchFloat'
-        api.nvim_buf_set_lines(f_buf, 0, 1, true, {text})
+        local floatWin, floatBuf = floatwin.update(height, floatCol, #text)
+        vim.wo[floatWin].winhl = 'Normal:HlSearchFloat'
+        api.nvim_buf_set_lines(floatBuf, 0, 1, true, {text})
     end
 end
 
 -- Add lens template, can be overrided by `override_lens`
--- @param bufnr (number) buffer number
--- @param splist (table) (1,1)-indexed position
--- @param nearest (boolean) whether nearest lens
--- @param idx (number) nearest index in the plist
--- @param r_idx (number) relative index, negative means before current position, positive means after
-function M.add_lens(bufnr, splist, nearest, idx, r_idx)
+---@param bufnr number buffer number
+---@param startPosList table (1,1)-indexed position
+---@param nearest boolean whether nearest lens
+---@param idx number nearest index in the plist
+---@param relIdx number relative index, negative means before current position, positive means after
+function M.addLens(bufnr, startPosList, nearest, idx, relIdx)
     if type(config.override_lens) == 'function' then
         -- export render module for hacking :)
-        return config.override_lens(M, splist, nearest, idx, r_idx)
+        return config.override_lens(M, startPosList, nearest, idx, relIdx)
     end
     local sfw = vim.v.searchforward == 1
     local indicator, text, chunks
-    local abs_r_idx = math.abs(r_idx)
-    if abs_r_idx > 1 then
-        indicator = ('%d%s'):format(abs_r_idx, sfw ~= (r_idx > 1) and 'N' or 'n')
-    elseif abs_r_idx == 1 then
-        indicator = sfw ~= (r_idx == 1) and 'N' or 'n'
+    local absRelIdx = math.abs(relIdx)
+    if absRelIdx > 1 then
+        indicator = ('%d%s'):format(absRelIdx, sfw ~= (relIdx > 1) and 'N' or 'n')
+    elseif absRelIdx == 1 then
+        indicator = sfw ~= (relIdx == 1) and 'N' or 'n'
     else
         indicator = ''
     end
 
-    local lnum, col = unpack(splist[idx])
+    local lnum, col = unpack(startPosList[idx])
     if nearest then
-        local cnt = #splist
+        local cnt = #startPosList
         if indicator ~= '' then
             text = ('[%s %d/%d]'):format(indicator, idx, cnt)
         else
@@ -129,122 +129,128 @@ function M.add_lens(bufnr, splist, nearest, idx, r_idx)
         text = ('[%s %d]'):format(indicator, idx)
         chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
     end
-    M.set_virt(bufnr, lnum - 1, col - 1, chunks, nearest)
+    M.setVirt(bufnr, lnum - 1, col - 1, chunks, nearest)
 end
 
-function M.set_virt(bufnr, lnum, col, chunks, nearest)
-    local ex_lnum, ex_col = lnum + 1, col + 1
-    if nearest and (nearest_float_when == 'auto' or nearest_float_when == 'always') then
-        if utils.is_cmdwin(bufnr) then
-            extmark.set_virt_eol(bufnr, lnum, chunks, virt_priority)
+function M.setVirt(bufnr, lnum, col, chunks, nearest)
+    local exLnum, exCol = lnum + 1, col + 1
+    if nearest and (nearestFloatWhen == 'auto' or nearestFloatWhen == 'always') then
+        if utils.isCmdLineWin(bufnr) then
+            extmark.setVirtEol(bufnr, lnum, chunks, virtPriority)
         else
-            local g_size = utils.textoff(api.nvim_get_current_win())
-            local per_line_wid = api.nvim_win_get_width(0) - g_size
-            if nearest_float_when == 'always' then
-                update_floatwin(0, {ex_lnum, ex_col}, chunks, per_line_wid, g_size)
+            local gutterSize = utils.textoff(api.nvim_get_current_win())
+            local lineWidth = api.nvim_win_get_width(0) - gutterSize
+            if nearestFloatWhen == 'always' then
+                updateFloatWin(0, {exLnum, exCol}, chunks, lineWidth, gutterSize)
             else
-                if enough_size4virt(0, ex_lnum, chunks, per_line_wid) then
-                    extmark.set_virt_eol(bufnr, lnum, chunks, virt_priority)
+                if enoughSizeForVirt(0, exLnum, chunks, lineWidth) then
+                    extmark.setVirtEol(bufnr, lnum, chunks, virtPriority)
                     floatwin.close()
                 else
-                    update_floatwin(0, {ex_lnum, ex_col}, chunks, per_line_wid, g_size)
+                    updateFloatWin(0, {exLnum, exCol}, chunks, lineWidth, gutterSize)
                 end
             end
         end
     else
-        extmark.set_virt_eol(bufnr, lnum, chunks, virt_priority)
+        extmark.setVirtEol(bufnr, lnum, chunks, virtPriority)
     end
 end
 
-function M.add_win_hl(winid, start_p, end_p)
-    winhl.add_hl(winid, start_p, end_p, 'HlSearchNear')
+-- TODO
+-- compatible with old demo
+M.set_virt = M.setVirt
+
+function M.addWinHighlight(winid, startPos, endPos)
+    winhl.addHighlight(winid, startPos, endPos, 'HlSearchNear')
 end
 
-function M.do_lens(splist, nearest, idx, r_idx)
-    local pos_len = #splist
-    local idx_lnum = splist[idx][1]
+local function getIdxLnum(posList, i)
+    return posList[i][1]
+end
 
-    local tbl_render = {}
+function M.doLens(startPosList, nearest, idx, relIdx)
+    local posLen = #startPosList
+    local idxLnum = getIdxLnum(startPosList, idx)
 
-    if not nearest_only and not nearest then
+    local lineRenderList = {}
+
+    if not nearestOnly and not nearest then
         local t0, b0
-        local p_pos, n_pos = splist[math.max(1, idx - 1)], splist[math.min(pos_len, idx + 1)]
+        local prevPos, nextPos = startPosList[math.max(1, idx - 1)],
+            startPosList[math.min(posLen, idx + 1)]
         -- TODO just relieve foldclosed behavior, can't solve the issue perfectly
         if vim.wo.foldenable then
-            t0, b0 = math.min(p_pos[1], fn.line('w0')), math.max(n_pos[1], fn.line('w$'))
+            t0, b0 = math.min(prevPos[1], fn.line('w0')), math.max(nextPos[1], fn.line('w$'))
         else
-            t0, b0 = p_pos[1], n_pos[1]
+            t0, b0 = prevPos[1], nextPos[1]
         end
-        local w_hei = api.nvim_win_get_height(0)
-        local top_limit = math.max(0, t0 - w_hei + 1)
-        local bot_limit = math.min(api.nvim_buf_line_count(0), b0 + w_hei - 1)
+        local winHeight = api.nvim_win_get_height(0)
+        local topLimit = math.max(0, t0 - winHeight + 1)
+        local botLimit = math.min(api.nvim_buf_line_count(0), b0 + winHeight - 1)
 
-        local i_lnum, rel_idx
-        local last_hl_lnum = 0
-        local top_r_idx = math.min(r_idx, 0)
+        local iLnum, rIdx
+        local lastHlLnum = 0
+        local topRelIdx = math.min(relIdx, 0)
+
         for i = math.max(idx - 1, 0), 1, -1 do
-            i_lnum = splist[i][1]
-            if i_lnum < top_limit then
+            iLnum = getIdxLnum(startPosList, i)
+            if iLnum < topLimit then
                 break
             end
-            if last_hl_lnum == i_lnum then
-                goto continue
+            if lastHlLnum ~= iLnum then
+                lastHlLnum = iLnum
+                rIdx = i - idx + topRelIdx
+                lineRenderList[iLnum] = {i, rIdx}
             end
-            last_hl_lnum = i_lnum
-            rel_idx = i - idx + top_r_idx
-            tbl_render[i_lnum] = {i, rel_idx}
-            ::continue::
         end
 
-        last_hl_lnum = idx_lnum
-        local bot_r_idx = math.max(r_idx, 0)
-        local last_i
-        for i = idx + 1, pos_len do
-            last_i = i
-            i_lnum = splist[i][1]
-            if last_hl_lnum == i_lnum then
-                goto continue
+        lastHlLnum = idxLnum
+        local botRelIdx = math.max(relIdx, 0)
+        local lastI
+        for i = idx + 1, posLen do
+            lastI = i
+            iLnum = getIdxLnum(startPosList, i)
+            if lastHlLnum ~= iLnum then
+                lastHlLnum = iLnum
+                rIdx = i - 1 - idx + botRelIdx
+                lineRenderList[startPosList[i - 1][1]] = {i - 1, rIdx}
+                if iLnum > botLimit then
+                    break
+                end
             end
-            last_hl_lnum = i_lnum
-            rel_idx = i - 1 - idx + bot_r_idx
-            tbl_render[splist[i - 1][1]] = {i - 1, rel_idx}
-            if i_lnum > bot_limit then
-                break
-            end
-            ::continue::
         end
 
-        if last_i and i_lnum <= bot_limit then
-            rel_idx = last_i - idx + bot_r_idx
-            tbl_render[i_lnum] = {last_i, rel_idx}
+        if lastI and iLnum <= botLimit then
+            rIdx = lastI - idx + botRelIdx
+            lineRenderList[iLnum] = {lastI, rIdx}
         end
-        tbl_render[idx_lnum] = nil
+        lineRenderList[idxLnum] = nil
     end
 
     local bufnr = api.nvim_get_current_buf()
-    extmark.clear_buf(bufnr)
-    M.add_lens(bufnr, splist, true, idx, r_idx)
-    for _, idxs in pairs(tbl_render) do
-        M.add_lens(bufnr, splist, false, idxs[1], idxs[2])
+    extmark.clearBuf(bufnr)
+    M.addLens(bufnr, startPosList, true, idx, relIdx)
+    for _, idxPairs in pairs(lineRenderList) do
+        M.addLens(bufnr, startPosList, false, idxPairs[1], idxPairs[2])
     end
 end
 
 function M.clear(hl, bufnr, floated)
     if hl then
-        winhl.clear_hl()
+        winhl.clearHighlight()
     end
     if bufnr then
-        extmark.clear_buf(bufnr)
+        extmark.clearBuf(bufnr)
     end
     if floated then
         floatwin.close()
     end
 end
 
-function M.clear_all()
+function M.clearAll()
     floatwin.close()
-    winhl.clear_hl()
-    extmark.clear_all_buf()
+    winhl.clearHighlight()
+    extmark.clearAllBuf()
 end
 
 init()

@@ -9,7 +9,7 @@ local function init()
     ns = api.nvim_create_namespace('hlslens')
 end
 
-function M.set_virt_eol(bufnr, lnum, chunks, priority, id)
+function M.setVirtEol(bufnr, lnum, chunks, priority, id)
     bufnr = bufnr == 0 and api.nvim_get_current_buf() or bufnr
     bufs[bufnr] = true
     -- id may be nil
@@ -21,7 +21,7 @@ function M.set_virt_eol(bufnr, lnum, chunks, priority, id)
     })
 end
 
-function M.clear_buf(bufnr)
+function M.clearBuf(bufnr)
     if not bufnr then
         return
     end
@@ -38,9 +38,9 @@ function M.clear_buf(bufnr)
     end
 end
 
-function M.clear_all_buf()
+function M.clearAllBuf()
     for bufnr in pairs(bufs) do
-        M.clear_buf(bufnr)
+        M.clearBuf(bufnr)
     end
     bufs = {}
 end

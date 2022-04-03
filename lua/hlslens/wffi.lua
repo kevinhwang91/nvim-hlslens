@@ -5,64 +5,65 @@ local utils
 local C
 local ffi
 
-local Cpat
+local Cpattern
 local Cchar_u_VLA
 local Cregmmatch_T
 
-local function curwin()
-    local cur_win
-    if utils.is_windows() then
+local function getCurWin()
+    local curWin
+    if utils.isWindows() then
         local err = ffi.new('Error')
-        cur_win = C.find_window_by_handle(0, err)
+        curWin = C.find_window_by_handle(0, err)
     else
-        cur_win = C.curwin
+        curWin = C.curwin
     end
-    return cur_win
+    return curWin
 end
 
-local function curbuf()
-    local cur_buf
-    if utils.is_windows() then
+local function getCurBuf()
+    local curBuf
+    if utils.isWindows() then
         local err = ffi.new('Error')
-        cur_buf = C.find_buffer_by_handle(0, err)
+        curBuf = C.find_buffer_by_handle(0, err)
     else
-        cur_buf = C.curbuf
+        curBuf = C.curbuf
     end
-    return cur_buf
-end
-function M.ml_get_buf_len(lnum)
-    return tonumber(C.strlen(C.ml_get_buf(curbuf(), lnum, false)))
+    return curBuf
 end
 
-function M.build_regmatch_T(pat)
+function M.mlGetBufLen(lnum)
+    return tonumber(C.strlen(C.ml_get_buf(getCurBuf(), lnum, false)))
+end
+
+function M.buildRegmatchT(pat)
     -- https://luajit.org/ext_ffi_semantics.html#gc
     -- Cpat must be referenced, it will be used during `vim_regexec_multi`
-    Cpat = Cchar_u_VLA(#pat + 1)
-    ffi.copy(Cpat, pat)
+    Cpattern = Cchar_u_VLA(#pat + 1)
+    ffi.copy(Cpattern, pat)
 
-    local regprog = C.vim_regcomp(Cpat, vim.o.magic and 1 or 0)
-    -- `if not regprog then` doesn't work with cdata<struct regprog *>: NULL from C
-    if regprog == nil then
+    local regProg = C.vim_regcomp(Cpattern, vim.o.magic and 1 or 0)
+    -- `if not regProg then` doesn't work with cdata<struct regprog *>: NULL from C
+    if regProg == nil then
         return
     end
     local regm = Cregmmatch_T()
-    regm.regprog = regprog
-    regm.rmm_ic = C.ignorecase(Cpat)
+    regm.regprog = regProg
+    regm.rmm_ic = C.ignorecase(Cpattern)
     regm.rmm_maxcol = 0
     return regm
 end
 
-function M.regmatch_pos(regm)
-    local start_pos, end_pos = regm.startpos[0], regm.endpos[0]
-    return {lnum = tonumber(start_pos.lnum), col = start_pos.col},
-        {lnum = tonumber(end_pos.lnum), col = end_pos.col}
+function M.regmatchPos(regm)
+    local startPos, endPos = regm.startpos[0], regm.endpos[0]
+    return {lnum = tonumber(startPos.lnum), col = startPos.col},
+        {lnum = tonumber(endPos.lnum), col = endPos.col}
 end
 
-function M.vim_regexec_multi(regm, lnum, col)
-    return tonumber(C.vim_regexec_multi(regm, curwin(), curbuf(), lnum, col, nil, nil))
+function M.vimRegExecMulti(regm, lnum, col)
+    return tonumber(C.vim_regexec_multi(regm, getCurWin(), getCurBuf(), lnum, col, nil, nil))
 end
 
-function M.curwin_col_off()
+function M.curWinColOff()
     return C.curwin_col_off()
 end
 
@@ -110,7 +111,7 @@ local function init()
     ]])
 
     utils = require('hlslens.utils')
-    if utils.is_windows() then
+    if utils.isWindows() then
         ffi.cdef([[
             typedef struct {} Error;
             buf_T *find_buffer_by_handle(int buffer, Error *err);

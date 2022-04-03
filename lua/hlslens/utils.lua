@@ -4,7 +4,17 @@ local api = vim.api
 local cmd = vim.cmd
 local uv = vim.loop
 
-M.is_windows = (function()
+M.has06 = (function()
+    local has06
+    return function()
+        if has06 == nil then
+            has06 = fn.has('nvim-0.6') == 1
+        end
+        return has06
+    end
+end)()
+
+M.isWindows = (function()
     local cache
     return function()
         if cache == nil then
@@ -14,23 +24,23 @@ M.is_windows = (function()
     end
 end)()
 
-M.jit_enabled = (function()
+M.jitEnabled = (function()
     local enabled
     return function()
         if enabled == nil then
-            enabled = jit and (not M.is_windows() or fn.has('nvim-0.6') == 1)
+            enabled = jit ~= nil and (not M.isWindows() or M.has06())
         end
         return enabled
     end
 end)()
 
-function M.bin_search(items, e, comp)
+function M.binSearch(items, element, comp)
     vim.validate({items = {items, 'table'}, comp = {comp, 'function'}})
     local min, max, mid = 1, #items, 1
     local r = 0
     while min <= max do
         mid = math.floor((min + max) / 2)
-        r = comp(items[mid], e)
+        r = comp(items[mid], element)
         if r == 0 then
             break
         elseif r > 0 then
@@ -42,7 +52,7 @@ function M.bin_search(items, e, comp)
     return mid, r
 end
 
-function M.compare_pos(p1, p2)
+function M.comparePosition(p1, p2)
     if p1[1] == p2[1] then
         if p1[2] == p2[2] then
             return 0
@@ -54,38 +64,51 @@ function M.compare_pos(p1, p2)
     end
 end
 
+function M.getWinInfo(winid)
+    local winfos = fn.getwininfo(winid)
+    assert(type(winfos) == 'table' and #winfos == 1,
+        '`getwininfo` expected 1 table with single element.')
+    return winfos[1]
+end
+
 function M.textoff(winid)
-    local textoff
-    local wffi = require('hlslens.wffi')
     vim.validate({winid = {winid, 'number'}})
-    if M.jit_enabled() then
-        textoff = M.win_execute(winid, wffi.curwin_col_off)
-    else
-        textoff = fn.getwininfo(winid)[1].textoff
+    local textoff
+    if M.has06() then
+        textoff = M.getWinInfo(winid).textoff
+    end
+
+    if not textoff then
+        M.winExecute(winid, function()
+            local wv = fn.winsaveview()
+            api.nvim_win_set_cursor(winid, {wv.lnum, 0})
+            textoff = fn.wincol() - 1
+            fn.winrestview(wv)
+        end)
     end
     return textoff
 end
 
-function M.is_cmdwin(bufnr)
-    local function is_cmdw()
+function M.isCmdLineWin(bufnr)
+    local function isCmdWin()
         return fn.bufname() == '[Command Line]'
     end
-    return bufnr and api.nvim_buf_call(bufnr, is_cmdw) or is_cmdw()
+    return bufnr and api.nvim_buf_call(bufnr, isCmdWin) or isCmdWin()
 end
 
 function M.vcol(winid, pos)
     local vcol = fn.virtcol(pos)
     if not vim.wo[winid].wrap then
-        M.win_execute(winid, function()
+        M.winExecute(winid, function()
             vcol = vcol - fn.winsaveview().leftcol
         end)
     end
     return vcol
 end
 
-function M.hl_attrs(hlgroup)
+function M.hlAttrs(hlgroup)
     vim.validate({hlgroup = {hlgroup, 'string'}})
-    local attr_dict = {
+    local attrTbl = {
         'bold', 'standout', 'underline', 'undercurl', 'italic', 'reverse', 'strikethrough'
     }
     local t = {}
@@ -94,17 +117,17 @@ function M.hl_attrs(hlgroup)
         if not ok then
             return
         end
-        local fg, bg, color_fmt = hl.foreground, hl.background, gui and '#%x' or '%s'
+        local fg, bg, colorFmt = hl.foreground, hl.background, gui and '#%x' or '%s'
         if fg then
-            t[gui and 'guifg' or 'ctermfg'] = color_fmt:format(fg)
+            t[gui and 'guifg' or 'ctermfg'] = colorFmt:format(fg)
         end
         if bg then
-            t[gui and 'guibg' or 'ctermbg'] = color_fmt:format(bg)
+            t[gui and 'guibg' or 'ctermbg'] = colorFmt:format(bg)
         end
         hl.foreground, hl.background = nil, nil
         local attrs = {}
         for attr in pairs(hl) do
-            if vim.tbl_contains(attr_dict, attr) then
+            if vim.tbl_contains(attrTbl, attr) then
                 table.insert(attrs, attr)
             end
         end
@@ -139,7 +162,7 @@ function M.matchaddpos(hlgroup, plist, prior, winid)
     return ids
 end
 
-function M.killable_defer(timer, func, delay)
+function M.killableDefer(timer, func, delay)
     vim.validate({
         timer = {timer, 'userdata', true},
         func = {func, 'function'},
@@ -167,7 +190,7 @@ function M.killable_defer(timer, func, delay)
     return timer
 end
 
-function M.win_execute(winid, func)
+function M.winExecute(winid, func)
     vim.validate({
         winid = {
             winid, function(w)
@@ -177,14 +200,14 @@ function M.win_execute(winid, func)
         func = {func, 'function'}
     })
 
-    local cur_winid = api.nvim_get_current_win()
-    local noa_set_win = 'noa call nvim_set_current_win(%d)'
-    if cur_winid ~= winid then
-        cmd(noa_set_win:format(winid))
+    local curWinid = api.nvim_get_current_win()
+    local noaSetWin = 'noa call nvim_set_current_win(%d)'
+    if curWinid ~= winid then
+        cmd(noaSetWin:format(winid))
     end
     local ret = func()
-    if cur_winid ~= winid then
-        cmd(noa_set_win:format(cur_winid))
+    if curWinid ~= winid then
+        cmd(noaSetWin:format(curWinid))
     end
     return ret
 end
