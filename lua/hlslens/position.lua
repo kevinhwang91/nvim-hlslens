@@ -58,8 +58,8 @@ function M.build(curBufnr, pattern)
     local startPosList, endPosList = rangeModule.buildList(pattern, limit)
 
     local posList = {startPos = startPosList, endPos = endPosList}
-    --TODO
-    --will remove start_pos and end_pos fields
+    -- TODO
+    -- will remove start_pos and end_pos fields
     posList.start_pos = posList.startPos
     posList.end_pos = posList.endPos
 
@@ -78,49 +78,46 @@ end
 
 local function nearestIndex(posList, curPos, topl, botl)
     local spList = posList.startPos
-    local idx, r = utils.binSearch(spList, curPos, utils.comparePosition)
-    local anotherIdx = idx - r
-    local relIdx = r
-
-    if r ~= 0 and anotherIdx <= #spList and anotherIdx >= 1 then
-        local idxLnum = spList[idx][1]
-        local anotherIdxLnum = spList[idx - r][1]
-        local midLnum = math.ceil((idxLnum + anotherIdxLnum) / 2) - 1
-        local curLnum = curPos[1]
-
-        -- fn.line('w$') may be expensive while scrolling down
-        topl = topl or fn.line('w0')
-        if r == -1 then
-            if topl > idxLnum then
-                relIdx = 1
-            elseif midLnum < curLnum and (botl or fn.line('w$')) >= anotherIdxLnum then
-                relIdx = 1
-            end
-        else
-            if topl <= anotherIdxLnum then
-                if midLnum >= curLnum or (botl or fn.line('w$')) < idxLnum then
-                    relIdx = -1
-                end
-            end
+    local idx = utils.binSearch(spList, curPos, utils.comparePosition)
+    if idx > 0 then
+        return idx, 0
+    else
+        idx = -idx - 1
+        if idx == 0 then
+            return 1, 1
+        elseif idx == #spList then
+            return #spList, -1
         end
-        if relIdx ~= r then
-            idx = idx - r
-        end
+    end
+    local loIdx = idx
+    local hiIdx = idx + 1
+    local relIdx = -1
 
-        if relIdx == 1 and idx > 1 then
-            -- calibrate the nearest index, because index is based on start of the position
-            -- curPos <= previousIdxEndPos < idxStartPos maybe happened
-            -- for instance:
-            --     text: 1ab|c 2abc
-            --     pattern: abc
-            --     cursor: |
-            -- nearest index locate at start of second 'abc',
-            -- but current postion is between start of
-            -- previous index postion and end of current index position
-            if utils.comparePosition(curPos, posList.endPos[idx - 1]) <= 0 then
-                idx = idx - 1
-                relIdx = -1
-            end
+    local loIdxLnum = spList[loIdx][1]
+    local hiIdxLnum = spList[hiIdx][1]
+    local midLnum = math.ceil((hiIdxLnum + loIdxLnum) / 2) - 1
+    local curLnum = curPos[1]
+
+    -- fn.line('w$') may be expensive while scrolling down
+    topl = topl or fn.line('w0')
+    if topl > loIdxLnum or midLnum < curLnum and (botl or fn.line('w$')) >= hiIdxLnum then
+        relIdx = 1
+        idx = idx + 1
+    end
+
+    if relIdx == 1 and idx > 1 then
+        -- calibrate the nearest index, because index is based on start of the position
+        -- curPos <= previousIdxEndPos < idxStartPos maybe happened
+        -- for instance:
+        --     text: 1ab|c 2abc
+        --     pattern: abc
+        --     cursor: |
+        -- nearest index locate at start of second 'abc',
+        -- but current postion is between start of
+        -- previous index postion and end of current index position
+        if utils.comparePosition(curPos, posList.endPos[idx - 1]) <= 0 then
+            idx = idx - 1
+            relIdx = -1
         end
     end
 

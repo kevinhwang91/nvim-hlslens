@@ -42,14 +42,14 @@ function M.binSearch(items, element, comp)
         mid = math.floor((min + max) / 2)
         r = comp(items[mid], element)
         if r == 0 then
-            break
+            return mid
         elseif r > 0 then
             max = mid - 1
         else
             min = mid + 1
         end
     end
-    return mid, r
+    return -min
 end
 
 function M.comparePosition(p1, p2)
