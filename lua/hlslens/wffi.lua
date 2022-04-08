@@ -78,8 +78,6 @@ local function init()
         typedef long linenr_T;
         typedef int colnr_T;
 
-        typedef uint64_t proftime_T;
-
         typedef struct {
             linenr_T lnum;
             colnr_T col;
@@ -103,7 +101,7 @@ local function init()
         int ignorecase(char_u *pat);
 
         long vim_regexec_multi(regmmatch_T *rmp, win_T *win, buf_T *buf, linenr_T lnum, colnr_T col,
-            proftime_T *tm, int *timed_out);
+            void *dummp_ptr, int *timed_out);
 
         size_t strlen(const char *s);
 

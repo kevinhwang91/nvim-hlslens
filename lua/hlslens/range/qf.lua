@@ -61,7 +61,7 @@ function M.buildList(pat, limit)
     pat = keepMagicOpt(pat)
     if vim.o.smartcase then
         local patternChars = pat:gsub('\\.', '')
-        if patternChars:lower(pat) ~= patternChars then
+        if patternChars:lower() ~= patternChars then
             pat = '\\C' .. pat
         end
     end
