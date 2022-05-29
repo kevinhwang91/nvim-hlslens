@@ -26,14 +26,13 @@ end
 
 function M.hitCache(bufnr, pattern, nearestIdx, nearestRelIdx)
     local c = bufs[bufnr]
-    return c and pattern == c.pattern and nearestIdx == c.nIdx and nearestRelIdx == c.nrIdx and
-               vim.v.searchforward == c.searchForward
+    return c and pattern == c.pattern and nearestIdx == c.nIdx and
+        nearestRelIdx == c.nrIdx and vim.v.searchforward == c.searchForward
 end
 
 function M.updateCache(bufnr, pattern, nearestIdx, nearestRelIdx)
     local c = bufs[bufnr]
-    c.pattern, c.nIdx, c.nrIdx, c.searchForward = pattern, nearestIdx, nearestRelIdx,
-        vim.v.searchforward
+    c.pattern, c.nIdx, c.nrIdx, c.searchForward = pattern, nearestIdx, nearestRelIdx, vim.v.searchforward
 end
 
 -- make sure run under current buffer
@@ -113,8 +112,8 @@ local function nearestIndex(posList, curPos, topl, botl)
         --     pattern: abc
         --     cursor: |
         -- nearest index locate at start of second 'abc',
-        -- but current postion is between start of
-        -- previous index postion and end of current index position
+        -- but current position is between start of
+        -- previous index position and end of current index position
         if utils.comparePosition(curPos, posList.endPos[idx - 1]) <= 0 then
             idx = idx - 1
             relIdx = -1

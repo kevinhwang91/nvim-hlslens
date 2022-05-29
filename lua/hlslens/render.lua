@@ -94,7 +94,7 @@ local function updateFloatWin(winid, pos, chunks, lineWidth, gutterSize)
     end
 end
 
--- Add lens template, can be overrided by `override_lens`
+-- Add lens template, can be overridden by `override_lens`
 ---@param bufnr number buffer number
 ---@param startPosList table (1,1)-indexed position
 ---@param nearest boolean whether nearest lens
@@ -176,8 +176,8 @@ function M.doLens(startPosList, nearest, idx, relIdx)
 
     if not nearestOnly and not nearest then
         local t0, b0
-        local prevPos, nextPos = startPosList[math.max(1, idx - 1)],
-            startPosList[math.min(posLen, idx + 1)]
+        local prevPos = startPosList[math.max(1, idx - 1)]
+        local nextPos = startPosList[math.min(posLen, idx + 1)]
         -- TODO just relieve foldclosed behavior, can't solve the issue perfectly
         if vim.wo.foldenable then
             t0, b0 = math.min(prevPos[1], fn.line('w0')), math.max(nextPos[1], fn.line('w$'))

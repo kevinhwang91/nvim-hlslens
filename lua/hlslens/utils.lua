@@ -67,7 +67,7 @@ end
 function M.getWinInfo(winid)
     local winfos = fn.getwininfo(winid)
     assert(type(winfos) == 'table' and #winfos == 1,
-        '`getwininfo` expected 1 table with single element.')
+           '`getwininfo` expected 1 table with single element.')
     return winfos[1]
 end
 
@@ -93,6 +93,7 @@ function M.isCmdLineWin(bufnr)
     local function isCmdWin()
         return fn.bufname() == '[Command Line]'
     end
+
     return bufnr and api.nvim_buf_call(bufnr, isCmdWin) or isCmdWin()
 end
 

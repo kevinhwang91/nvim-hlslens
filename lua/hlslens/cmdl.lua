@@ -11,21 +11,10 @@ local DUMMY_POS
 
 local incsearch
 
-local foldInfo
+local Search = {}
 
-local lastCmdLine
 local cmdType
-
-local lastPattern
-local lastOffset
-local lastMul
-
 local ns
-local timer
-
-local skip
-
-local onKey
 
 local function refreshLens()
     -- ^R ^[
@@ -120,15 +109,15 @@ local function closeFold(level, targetLine, curLine)
     end
 end
 
-local function doSearch(bufnr, delay)
+function Search:doSearch(bufnr, delay)
     bufnr = bufnr or api.nvim_get_current_buf()
-    timer = utils.killableDefer(timer, function()
+    self.timer = utils.killableDefer(self.timer, function()
         if cmdType == fn.getcmdtype() then
             local ok, msg = pcall(fn.searchcount, {
                 recompute = true,
                 maxcount = 100000,
                 timeout = 100,
-                pattern = lastPattern
+                pattern = self.pattern
             })
             if ok then
                 local res = msg
@@ -137,16 +126,16 @@ local function doSearch(bufnr, delay)
 
                     local idx = res.current
 
-                    local pos = fn.searchpos(lastPattern, 'bcnW')
+                    local pos = fn.searchpos(self.pattern, 'bcnW')
 
-                    if foldInfo then
-                        closeFold(foldInfo.level, foldInfo.lnum)
-                        foldInfo.lnum = -1
+                    if self.foldInfo then
+                        closeFold(self.foldInfo.level, self.foldInfo.lnum)
+                        self.foldInfo.lnum = -1
 
                         local lnum = pos[1]
                         if fn.foldclosed(lnum) > 0 then
-                            foldInfo.lnum = lnum
-                            foldInfo.level = fn.foldlevel(lnum)
+                            self.foldInfo.lnum = lnum
+                            self.foldInfo.level = fn.foldlevel(lnum)
                             cmd('norm! zv')
                         end
                     end
@@ -160,10 +149,10 @@ local function doSearch(bufnr, delay)
 end
 
 local function incSearchEnabled()
-    return vim.o.is and incsearch
+    return incsearch and vim.o.is
 end
 
-function M.searchAttach()
+function Search:attach()
     if not incSearchEnabled() then
         return
     elseif not utils.jitEnabled() and utils.isCmdLineWin() then
@@ -171,32 +160,31 @@ function M.searchAttach()
     end
 
     if vim.o.fdo:find('search') and vim.wo.foldenable then
-        foldInfo = {lnum = -1}
+        self.foldInfo = {lnum = -1}
     end
 
-    lastCmdLine = ''
-    cmdType = vim.v.event.cmdtype
-    onKey(function(char)
+    self.cmdLine = ''
+    self.onKey(function(char)
         local b1, b2, b3 = char:byte(1, -1)
         if b1 == 0x07 or b1 == 0x14 then
             -- <C-g> = 0x7
             -- <C-t> = 0x14
-            if lastOffset == '' and not lastMul then
-                doSearch()
+            if self.offset == '' and not self.multiple then
+                self:doSearch()
             end
         elseif b1 == 0x80 and b2 == 0x6b and (b3 == 0x64 or b3 == 0x75) then
             -- <Up> = 0x80 0x6b 0x75
             -- <Down> = 0x80 0x6b 0x64
             -- TODO https://github.com/kevinhwang91/nvim-hlslens/issues/18
-            skip = true
+            self.skip = true
             render.clear(false, 0, true)
         end
     end, ns)
 end
 
-function M.searchChanged()
-    if skip then
-        skip = false
+function Search:changed()
+    if self.skip then
+        self.skip = false
         return
     end
 
@@ -205,21 +193,21 @@ function M.searchChanged()
     end
 
     local cmdl = fn.getcmdline()
-    if lastCmdLine == cmdl then
+    if self.cmdLine == cmdl then
         return
     else
-        lastCmdLine = cmdl
+        self.cmdLine = cmdl
     end
 
-    lastPattern, lastOffset, lastMul = splitCmdLine(cmdl, cmdType)
+    self.pattern, self.offset, self.multiple = splitCmdLine(cmdl, cmdType)
 
     local bufnr = api.nvim_get_current_buf()
     render.clear(true)
 
-    if filter(lastPattern) then
-        doSearch(bufnr, 50)
+    if filter(self.pattern) then
+        self:doSearch(bufnr, 50)
     else
-        timer = utils.killableDefer(timer, function()
+        self.timer = utils.killableDefer(self.timer, function()
             if cmdType == fn.getcmdtype() then
                 clearLens(bufnr)
             end
@@ -227,37 +215,56 @@ function M.searchChanged()
     end
 end
 
-function M.searchDetach()
-    lastOffset = parseOffset(lastOffset)
+function Search:detach(abort)
+    self.offset = parseOffset(self.offset)
 
-    lastCmdLine = nil
-    cmdType = nil
+    self.cmdLine = nil
 
-    onKey(nil, ns)
+    self.onKey(nil, ns)
 
-    if timer and timer:has_ref() then
-        timer:stop()
-        if not timer:is_closing() then
-            timer:close()
+    if self.timer and self.timer:has_ref() then
+        self.timer:stop()
+        if not self.timer:is_closing() then
+            self.timer:close()
         end
     end
 
-    if foldInfo and vim.v.event.abort then
-        closeFold(foldInfo.level, foldInfo.lnum)
+    if self.foldInfo and abort then
+        closeFold(self.foldInfo.level, self.foldInfo.lnum)
     end
-    foldInfo = nil
+    self.foldInfo = nil
+end
+
+function M.attach(typ)
+    if typ == '/' or typ == '?' then
+        Search:attach()
+    end
+    cmdType = typ
+end
+
+function M.changed(typ)
+    if typ == '/' or typ == '?' then
+        Search:changed()
+    end
+end
+
+function M.detach(typ, abort)
+    if typ == '/' or typ == '?' then
+        Search:detach(abort)
+    end
+    cmdType = nil
 end
 
 local function init()
-    DUMMY_POS = {1, 1}
-    lastPattern = ''
-    lastOffset = ''
-    lastMul = false
-    skip = false
-    ns = api.nvim_create_namespace('hlslens')
     incsearch = config.enable_incsearch
-    foldInfo = nil
-    onKey = vim.on_key and vim.on_key or vim.register_keystroke_callback
+    DUMMY_POS = {1, 1}
+    Search.pattern = ''
+    Search.offset = ''
+    Search.multiple = false
+    Search.skip = false
+    Search.foldInfo = nil
+    Search.onKey = vim.on_key and vim.on_key or vim.register_keystroke_callback
+    ns = api.nvim_create_namespace('hlslens')
 end
 
 init()

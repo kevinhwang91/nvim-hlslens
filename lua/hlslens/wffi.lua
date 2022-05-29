@@ -101,7 +101,7 @@ local function init()
         int ignorecase(char_u *pat);
 
         long vim_regexec_multi(regmmatch_T *rmp, win_T *win, buf_T *buf, linenr_T lnum, colnr_T col,
-            void *dummp_ptr, int *timed_out);
+            void *dummy_ptr, int *timed_out);
 
         size_t strlen(const char *s);
 

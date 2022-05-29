@@ -3,7 +3,7 @@ local api = vim.api
 local fn = vim.fn
 local cmd = vim.cmd
 
-local cmdls = require('hlslens.cmdls')
+local cmdl = require('hlslens.cmdl')
 local render = require('hlslens.render')
 local position = require('hlslens.position')
 local config = require('hlslens.config')
@@ -25,23 +25,17 @@ local function reset()
 end
 
 local function autocmd(initial)
-    if initial then
+    cmd([[
+        aug HlSearchLens
+            au!
+            au CmdlineEnter * lua require('hlslens.main').cmdLineEnter()
+            au CmdlineLeave * lua require('hlslens.main').cmdLineLeave()
+            au CmdlineChanged * lua require('hlslens.main').cmdLineChanged()
+        aug END
+    ]])
+    if not initial then
         cmd([[
             aug HlSearchLens
-                au!
-                au CmdlineEnter /,\? lua require('hlslens.main').cmdLineSearchEnter()
-                au CmdlineChanged /,\? lua require('hlslens.main').cmdLineSearChanged()
-                au CmdlineLeave /,\? lua require('hlslens.main').cmdLineSearchLeave()
-            aug END
-        ]])
-    else
-        cmd([[
-            aug HlSearchLens
-                au!
-                au CmdlineEnter /,\? lua require('hlslens.main').cmdLineSearchEnter()
-                au CmdlineChanged /,\? lua require('hlslens.main').cmdLineSearChanged()
-                au CmdlineLeave /,\? lua require('hlslens.main').cmdLineSearchLeave()
-                au CmdlineLeave : lua require('hlslens.main').observeCmdLineLeave()
                 au CursorMoved * lua require('hlslens.main').refresh()
                 au WinEnter,TermLeave,VimResized * lua require('hlslens.main').refresh(true)
                 au TermEnter * lua require('hlslens.main').clearCurLens()
@@ -57,22 +51,49 @@ local function mayInitialize()
     end
 end
 
-function M.cmdLineSearchEnter()
-    cmdls.searchAttach()
-end
-
-function M.cmdLineSearChanged()
-    cmdls.searchChanged()
-end
-
-function M.cmdLineSearchLeave()
-    cmdls.searchDetach()
-    if vim.o.hlsearch then
-        mayInitialize()
-        vim.schedule(function()
-            M.refresh(true)
-        end)
+local function cmdLineAbort()
+    local cmdline = vim.trim(fn.getcmdline())
+    if #cmdline > 2 then
+        for _, cl in ipairs(vim.split(cmdline, '|')) do
+            if ('nohlsearch'):match(vim.trim(cl)) then
+                vim.schedule(reset)
+                return
+            end
+        end
     end
+
+    vim.schedule(function()
+        local pattern = fn.getreg('/')
+        if pattern == '' then
+            reset()
+        end
+    end)
+end
+
+function M.cmdLineEnter()
+    cmdl.attach(vim.v.event.cmdtype)
+end
+
+function M.cmdLineLeave()
+    local e = vim.v.event
+    local cmdType, abort = e.cmdtype, e.abort
+    cmdl.detach(cmdType, abort)
+    if cmdType == '/' or cmdType == '?' then
+        if vim.o.hlsearch then
+            mayInitialize()
+            vim.schedule(function()
+                M.refresh(true)
+            end)
+        end
+    elseif cmdType == ':' then
+        if status == STATE.START and not abort then
+            cmdLineAbort()
+        end
+    end
+end
+
+function M.cmdLineChanged()
+    cmdl.changed(vim.v.event.cmdtype)
 end
 
 function M.status()
@@ -91,7 +112,7 @@ function M.enable()
     if status == STATE.STOP then
         autocmd(true)
         if api.nvim_get_mode().mode == 'c' then
-            M.cmdLineSearchEnter()
+            M.cmdLineEnter()
         end
         if vim.v.hlsearch == 1 and fn.getreg('/') ~= '' then
             M.start()
@@ -188,27 +209,6 @@ function M.start(force)
     if vim.o.hlsearch then
         mayInitialize()
         M.refresh(force)
-    end
-end
-
-function M.observeCmdLineLeave()
-    if not vim.v.event.abort then
-        local cmdl = vim.trim(fn.getcmdline())
-        if #cmdl > 2 then
-            for _, cl in ipairs(vim.split(cmdl, '|')) do
-                if ('nohlsearch'):match(vim.trim(cl)) then
-                    vim.schedule(reset)
-                    return
-                end
-            end
-        end
-
-        vim.schedule(function()
-            local pattern = fn.getreg('/')
-            if pattern == '' then
-                reset()
-            end
-        end)
     end
 end
 

@@ -1,37 +1,38 @@
 # nvim-hlslens
 
-nvim-hlslens helps you better glance at matched information, seamlessly jump between matched instances.
+nvim-hlslens helps you better glance at matched information, seamlessly jump between matched
+instances.
 
 <https://user-images.githubusercontent.com/17562139/144654751-0d439610-b913-4e72-b473-e49db3317fab.mp4>
 
 ## Table of contents
 
-* [Table of contents](#table-of-contents)
-* [Features](#features)
-* [Quickstart](#quickstart)
-  * [Requirements](#requirements)
-  * [Installation](#installation)
-  * [Minimal configuration](#minimal-configuration)
-  * [Usage](#usage)
-    * [3 ways to start hlslens](#3-ways-to-start-hlslens)
-    * [Stop hlslens](#stop-hlslens)
-* [Documentation](#documentation)
-  * [Setup and description](#setup-and-description)
-  * [Highlight](#highlight)
-  * [Commands](#commands)
-* [Advanced configuration](#advanced-configuration)
-  * [Customize configuration](#customize-configuration)
-  * [Customize virtual text](#customize-virtual-text)
-  * [Integrate with other plugins](#integrate-with-other-plugins)
-    * [vim-asterisk](https://github.com/haya14busa/vim-asterisk)
-    * [vim-visual-multi](https://github.com/mg979/vim-visual-multi)
-* [Feedback](#feedback)
-* [License](#license)
+- [Table of contents](#table-of-contents)
+- [Features](#features)
+- [Quickstart](#quickstart)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Minimal configuration](#minimal-configuration)
+  - [Usage](#usage)
+    - [3 ways to start hlslens](#3-ways-to-start-hlslens)
+    - [Stop hlslens](#stop-hlslens)
+- [Documentation](#documentation)
+  - [Setup and description](#setup-and-description)
+  - [Highlight](#highlight)
+  - [Commands](#commands)
+- [Advanced configuration](#advanced-configuration)
+  - [Customize configuration](#customize-configuration)
+  - [Customize virtual text](#customize-virtual-text)
+  - [Integrate with other plugins](#integrate-with-other-plugins)
+    - [vim-asterisk](https://github.com/haya14busa/vim-asterisk)
+    - [vim-visual-multi](https://github.com/mg979/vim-visual-multi)
+- [Feedback](#feedback)
+- [License](#license)
 
 ## Features
 
 - Fully customizable style of virtual text
-- Display virtual text dynamicly while cursor is moving
+- Display virtual text dynamically while cursor is moving
 - Clear highlighting and virtual text when cursor is out of range
 - Add virtual text for the current matched instance while searching
 - Thanks to the cache and asynchronous rendering, it is very fast
@@ -54,7 +55,7 @@ use {'kevinhwang91/nvim-hlslens'}
 
 ### Minimal configuration
 
-``` lua
+```lua
 local kopts = {noremap = true, silent = true}
 
 vim.api.nvim_set_keymap('n', 'n',
@@ -78,8 +79,8 @@ After using [Minimal configuration](#Minimal-configuration):
 Hlslens will add virtual text at the end of the line if the room is enough for virtual text,
 otherwise, add a floating window to overlay the statusline to display lens.
 
-You can glance at the result provided by lens while searching when `incsearch` is on.
-Hlslens also supports `<C-g>` and `<C-t>` to move to the next and previous match.
+You can glance at the result provided by lens while searching when `incsearch` is on. Hlslens also
+supports `<C-g>` and `<C-t>` to move to the next and previous match.
 
 #### 3 ways to start hlslens
 
