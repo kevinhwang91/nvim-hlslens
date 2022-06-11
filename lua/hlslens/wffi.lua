@@ -71,11 +71,20 @@ local function init()
     ffi = require('ffi')
     setmetatable(M, {__index = ffi})
     C = ffi.C
+    utils = require('hlslens.utils')
+    if utils.has08() then
+        ffi.cdef([[
+            typedef int32_t linenr_T;
+        ]])
+    else
+        ffi.cdef([[
+            typedef long linenr_T;
+        ]])
+    end
     ffi.cdef([[
         typedef unsigned char char_u;
         typedef struct regprog regprog_T;
 
-        typedef long linenr_T;
         typedef int colnr_T;
 
         typedef struct {
@@ -108,7 +117,6 @@ local function init()
         int curwin_col_off(void);
     ]])
 
-    utils = require('hlslens.utils')
     if utils.isWindows() then
         ffi.cdef([[
             typedef struct {} Error;

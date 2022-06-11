@@ -14,6 +14,16 @@ M.has06 = (function()
     end
 end)()
 
+M.has08 = (function()
+    local has08
+    return function()
+        if has08 == nil then
+            has08 = fn.has('nvim-0.8') == 1
+        end
+        return has08
+    end
+end)()
+
 M.isWindows = (function()
     local cache
     return function()
