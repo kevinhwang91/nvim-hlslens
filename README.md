@@ -142,11 +142,11 @@ Hlslens will observe whether `nohlsearch` command is accepted.
             should search `override_lens` and inspect the corresponding source code.
             There's no guarantee that this function will not be changed in the future. If it is
             changed, it will be listed in the CHANGES file.
-            @param bufnr (number) buffer number
-            @param splist (table) (1,1)-indexed position
-            @param nearest (boolean) whether nearest lens
-            @param idx (number) nearest index in the plist
-            @param relIdx (number) relative index, negative means before current position,
+            @param render table an inner module for hlslens, use `setVirt` to set virtual text
+            @param splist table (1,1)-indexed position
+            @param nearest boolean whether nearest lens
+            @param idx number nearest index in the plist
+            @param relIdx number relative index, negative means before current position,
                                   positive means after
         ]],
         default = nil
