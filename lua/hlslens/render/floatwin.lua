@@ -17,7 +17,7 @@ end
 function M.update(row, col, width)
     local conf = {
         relative = 'win',
-        width = width,
+        width = math.max(1, width),
         height = 1,
         row = row,
         col = col,
