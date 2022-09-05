@@ -101,11 +101,11 @@ local function filter(pat)
     return true
 end
 
-local function closeFold(level, targetLine, curLine)
-    if targetLine > 0 then
-        curLine = curLine or api.nvim_win_get_cursor(0)[1]
-        level = level or 1
-        cmd(('keepj norm! %dgg%dzc%dgg'):format(targetLine, level, curLine))
+local function closeFold(closedLnum)
+    if closedLnum > 0 then
+        while fn.foldclosed(closedLnum) == -1 do
+            cmd(closedLnum .. 'foldclose')
+        end
     end
 end
 
@@ -129,13 +129,12 @@ function Search:doSearch(bufnr, delay)
                     local pos = fn.searchpos(self.pattern, 'bcnW')
 
                     if self.foldInfo then
-                        closeFold(self.foldInfo.level, self.foldInfo.lnum)
+                        closeFold(self.foldInfo.lnum)
                         self.foldInfo.lnum = -1
 
-                        local lnum = pos[1]
-                        if fn.foldclosed(lnum) > 0 then
-                            self.foldInfo.lnum = lnum
-                            self.foldInfo.level = fn.foldlevel(lnum)
+                        local closedLnum = fn.foldclosed(pos[1])
+                        if closedLnum > 0 then
+                            self.foldInfo.lnum = closedLnum
                             cmd('norm! zv')
                         end
                     end
@@ -230,7 +229,7 @@ function Search:detach(abort)
     end
 
     if self.foldInfo and abort then
-        closeFold(self.foldInfo.level, self.foldInfo.lnum)
+        closeFold(self.foldInfo.lnum)
     end
     self.foldInfo = nil
 end
