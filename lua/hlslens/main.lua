@@ -36,7 +36,7 @@ local function autocmd(initial)
     if not initial then
         cmd([[
             aug HlSearchLens
-                au CursorMoved * lua require('hlslens.main').refresh()
+                au CursorMoved,CursorMovedI * lua require('hlslens.main').refresh()
                 au WinEnter,TermLeave,VimResized * lua require('hlslens.main').refresh(true)
                 au TermEnter * lua require('hlslens.main').clearCurLens()
             aug END
@@ -190,7 +190,7 @@ function M.refresh(force)
     position.updateCache(bufnr, pattern, idx, rIdx)
 
     if calmDown then
-        if not position.inRange(startPos, endPos, curPos) then
+        if vim.fn.mode() == "i" or not position.inRange(startPos, endPos, curPos) then
             vim.schedule(function()
                 cmd('noh')
                 reset()
