@@ -113,8 +113,8 @@ Hlslens will observe whether `nohlsearch` command is accepted.
         default = true
     },
     calm_down = {
-        description = [[When the cursor is out of the position range of the matched instance
-            and calm_down is true, clear all lens]],
+        description = [[If calm_down is true, clear all lens and highlighting When the cursor is
+            out of the position range of the matched instance or any texts are changed]],
         default = false,
     },
     nearest_only = {
