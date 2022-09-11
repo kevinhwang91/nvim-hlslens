@@ -36,7 +36,7 @@ local function autocmd(initial)
     if not initial then
         cmd([[
             aug HlSearchLens
-                au CursorMoved,CursorMovedI * lua require('hlslens.main').refresh()
+                au CursorMoved * lua require('hlslens.main').refresh()
                 au WinEnter,TermLeave,VimResized * lua require('hlslens.main').refresh(true)
                 au TermEnter * lua require('hlslens.main').clearCurLens()
             aug END
@@ -45,6 +45,7 @@ local function autocmd(initial)
             cmd([[
                 aug HlSearchLens
                     au TextChanged,TextChangedI * lua require('hlslens.main').nohAndReset()
+                    au CursorMovedI * lua require('hlslens.main').refresh()
                 aug END
             ]])
         end
