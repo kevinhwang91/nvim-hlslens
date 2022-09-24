@@ -4,16 +4,6 @@ local api = vim.api
 local cmd = vim.cmd
 local uv = vim.loop
 
-M.has06 = (function()
-    local has06
-    return function()
-        if has06 == nil then
-            has06 = fn.has('nvim-0.6') == 1
-        end
-        return has06
-    end
-end)()
-
 M.has08 = (function()
     local has08
     return function()
@@ -31,16 +21,6 @@ M.isWindows = (function()
             cache = uv.os_uname().sysname == 'Windows_NT'
         end
         return cache
-    end
-end)()
-
-M.jitEnabled = (function()
-    local enabled
-    return function()
-        if enabled == nil then
-            enabled = jit ~= nil and (not M.isWindows() or M.has06())
-        end
-        return enabled
     end
 end)()
 
@@ -83,20 +63,7 @@ end
 
 function M.textoff(winid)
     vim.validate({winid = {winid, 'number'}})
-    local textoff
-    if M.has06() then
-        textoff = M.getWinInfo(winid).textoff
-    end
-
-    if not textoff then
-        M.winExecute(winid, function()
-            local wv = fn.winsaveview()
-            api.nvim_win_set_cursor(winid, {wv.lnum, 0})
-            textoff = fn.wincol() - 1
-            fn.winrestview(wv)
-        end)
-    end
-    return textoff
+    return M.getWinInfo(winid).textoff
 end
 
 function M.isCmdLineWin(bufnr)

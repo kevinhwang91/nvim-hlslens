@@ -235,7 +235,7 @@ end
 
 local function init()
     bufs = {cnt = 0}
-    jitEnabled = utils.jitEnabled()
+    jitEnabled = jit ~= nil
     limit = jitEnabled and 100000 or 10000
     rangeModule = jitEnabled and require('hlslens.range.regex') or require('hlslens.range.qf')
 end
