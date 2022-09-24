@@ -32,10 +32,12 @@ instances.
 ## Features
 
 - Fully customizable style of virtual text
-- Display virtual text dynamically while cursor is moving
 - Clear highlighting and virtual text when cursor is out of range
-- Add virtual text for the current matched instance while searching
-- Thanks to the cache and asynchronous rendering, it is very fast
+- Display search result dynamically while cursor is moving
+- Display search result for the current matched instance while searching
+- Display search result for some built-in commands that support incsearch (need Neovim 0.8.0)
+
+> Need `vim.api.nvim_parse_cmd` to pick up built-in commands in command line mode.
 
 ## Quickstart
 
