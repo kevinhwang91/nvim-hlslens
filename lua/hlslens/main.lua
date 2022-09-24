@@ -28,9 +28,9 @@ local function autocmd(initial)
     cmd([[
         aug HlSearchLens
             au!
-            au CmdlineEnter * lua require('hlslens.main').cmdLineEnter()
-            au CmdlineLeave * lua require('hlslens.main').cmdLineLeave()
-            au CmdlineChanged * lua require('hlslens.main').cmdLineChanged()
+            au CmdlineEnter /,\?,: lua require('hlslens.main').cmdLineEnter()
+            au CmdlineLeave /,\?,: lua require('hlslens.main').cmdLineLeave()
+            au CmdlineChanged /,\?,: lua require('hlslens.main').cmdLineChanged()
         aug END
     ]])
     if not initial then
@@ -61,21 +61,13 @@ end
 
 local function cmdLineAbort()
     local cmdline = vim.trim(fn.getcmdline())
-    if #cmdline > 2 then
-        for _, cl in ipairs(vim.split(cmdline, '|')) do
-            if ('nohlsearch'):match(vim.trim(cl)) then
-                vim.schedule(reset)
-                return
-            end
+    for _, cl in ipairs(vim.split(cmdline, '|')) do
+        if #cl > 2 and ('nohlsearch'):find(vim.trim(cl), 1, true) then
+            vim.schedule(reset)
+            return false
         end
     end
-
-    vim.schedule(function()
-        local pattern = fn.getreg('/')
-        if pattern == '' then
-            reset()
-        end
-    end)
+    return true
 end
 
 function M.cmdLineEnter()
@@ -86,22 +78,22 @@ function M.cmdLineLeave()
     local e = vim.v.event
     local cmdType, abort = e.cmdtype, e.abort
     cmdl.detach(cmdType, abort)
-    if cmdType == '/' or cmdType == '?' then
-        if vim.o.hlsearch then
-            mayInitialize()
-            vim.schedule(function()
-                M.refresh(true)
-            end)
-        end
-    elseif cmdType == ':' then
+    local shouldRefresh = true
+    if cmdType == ':' then
         if status == STATE.START and not abort then
-            cmdLineAbort()
+            shouldRefresh = cmdLineAbort()
         end
+    end
+    if shouldRefresh and vim.o.hlsearch then
+        mayInitialize()
+        vim.schedule(function()
+            M.refresh(true)
+        end)
     end
 end
 
 function M.cmdLineChanged()
-    cmdl.changed(vim.v.event.cmdtype)
+    cmdl.changed()
 end
 
 function M.status()

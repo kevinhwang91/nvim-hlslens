@@ -14,12 +14,16 @@ local incsearch
 local Search = {}
 
 local cmdType
-local ns
 
-local function refreshLens()
-    -- ^R ^[
-    api.nvim_feedkeys(('%c%c'):format(0x12, 0x1b), 'in', false)
-end
+local incSearchCmd = {
+    'substitute',
+    'vglobal',
+    'vimgrep',
+    'vimgrepadd',
+    'lvimgrep',
+    'lvimgrepadd',
+    'global'
+}
 
 local function fillDummyList(cnt)
     local posList = {}
@@ -34,12 +38,6 @@ local function renderLens(bufnr, idx, cnt, pos)
     local plist = fillDummyList(cnt)
     plist[idx] = pos
     render.addLens(bufnr, plist, true, idx, 0)
-    refreshLens()
-end
-
-local function clearLens(bufnr)
-    render.clear(false, bufnr, true)
-    refreshLens()
 end
 
 local function parseOffset(rawOffset)
@@ -94,7 +92,7 @@ end
 
 local function filter(pat)
     if #pat <= 2 then
-        if #pat == 1 or pat:sub(1, 1) == [[\]] or pat == '..' then
+        if #pat < 2 or pat:sub(1, 1) == [[\]] or pat == '..' then
             return false
         end
     end
@@ -109,42 +107,86 @@ local function closeFold(closedLnum)
     end
 end
 
-function Search:doSearch(bufnr, delay)
-    bufnr = bufnr or api.nvim_get_current_buf()
-    self.timer = utils.killableDefer(self.timer, function()
-        if cmdType == fn.getcmdtype() then
-            local ok, msg = pcall(fn.searchcount, {
-                recompute = true,
-                maxcount = 100000,
-                timeout = 100,
-                pattern = self.pattern
-            })
-            if ok then
-                local res = msg
-                if res.incomplete == 0 and res.total and res.total > 0 then
-                    render.clear(false, bufnr)
+function Search:resetState()
+    self.currentIdx = 0
+    self.total = 0
+end
 
-                    local idx = res.current
+function Search:doRender(bufnr, pos)
+    if self.foldInfo then
+        closeFold(self.foldInfo.lnum)
+        self.foldInfo.lnum = -1
 
-                    local pos = fn.searchpos(self.pattern, 'bcnW')
-
-                    if self.foldInfo then
-                        closeFold(self.foldInfo.lnum)
-                        self.foldInfo.lnum = -1
-
-                        local closedLnum = fn.foldclosed(pos[1])
-                        if closedLnum > 0 then
-                            self.foldInfo.lnum = closedLnum
-                            cmd('norm! zv')
-                        end
-                    end
-                    renderLens(bufnr, idx, res.total, pos)
-                else
-                    clearLens(bufnr)
-                end
-            end
+        local closedLnum = fn.foldclosed(pos[1])
+        if closedLnum > 0 then
+            self.foldInfo.lnum = closedLnum
+            cmd('norm! zv')
         end
-    end, delay or 0)
+    end
+    render.clear(true, bufnr, true)
+    renderLens(bufnr, self.currentIdx, self.total, pos)
+end
+
+---may_do_incsearch_highlighting
+---@param bufnr number
+function Search:doSearch(bufnr)
+    local ret = false
+    api.nvim_win_set_cursor(0, self.searchStart)
+    local pos = fn.searchpos(self.pattern, cmdType == '?' and 'bc' or 'c')
+    local res
+    ret, res = pcall(fn.searchcount, {
+        recompute = true,
+        maxcount = 100000,
+        timeout = 100,
+        pattern = self.pattern
+    })
+    if ret then
+        if res.incomplete == 0 and res.total and res.total > 0 then
+            self.currentIdx = res.current
+            self.total = res.total
+            self:doRender(bufnr, pos)
+        else
+            self:resetState()
+            render.clear(true, bufnr, true)
+        end
+    end
+    return ret
+end
+
+---may_do_command_line_next_incsearch
+---@param bufnr number
+---@param forward boolean
+function Search:doCmdLineNextIncSearch(bufnr, forward)
+    local pos
+    if self.delimClosed then
+        fn.searchpos(self.pattern, 'e')
+        self.delimClosed = false
+    end
+    local cursor = api.nvim_win_get_cursor(0)
+    if forward then
+        pos = fn.searchpos(self.pattern, '')
+    else
+        fn.searchpos(self.pattern, 'b')
+        pos = fn.searchpos(self.pattern, 'b')
+    end
+    if utils.comparePosition(pos, {0, 0}) == 0 then
+        return
+    end
+    local pos1 = {pos[1], pos[2] - 1}
+    if forward then
+        self.searchStart = cmdType == '?' and pos1 or cursor
+        self.currentIdx = self.currentIdx == self.total and 1 or self.currentIdx + 1
+        -- wrap around
+        if utils.comparePosition(pos1, self.searchStart) < 0 then
+            self.searchStart = pos1
+        end
+    else
+        self.searchStart = cmdType ~= '?' and pos1 or cursor
+        self.currentIdx = self.currentIdx == 1 and self.total or self.currentIdx - 1
+    end
+    if self.offset == '' and not self.multiple then
+        self:doRender(bufnr, pos)
+    end
 end
 
 local function incSearchEnabled()
@@ -154,8 +196,6 @@ end
 function Search:attach()
     if not incSearchEnabled() then
         return
-    elseif not utils.jitEnabled() and utils.isCmdLineWin() then
-        return
     end
 
     if vim.o.fdo:find('search') and vim.wo.foldenable then
@@ -163,63 +203,117 @@ function Search:attach()
     end
 
     self.cmdLine = ''
+    self:resetState()
+    self.saveCurosr = api.nvim_win_get_cursor(0)
+    self.searchStart = self.saveCurosr
+    local bufnr = api.nvim_get_current_buf()
+    self.cmdIncSearching = true
     self.onKey(function(char)
-        local b1, b2, b3 = char:byte(1, -1)
-        if b1 == 0x07 or b1 == 0x14 then
-            -- <C-g> = 0x7
-            -- <C-t> = 0x14
-            if self.offset == '' and not self.multiple then
-                self:doSearch()
-            end
-        elseif b1 == 0x80 and b2 == 0x6b and (b3 == 0x64 or b3 == 0x75) then
-            -- <Up> = 0x80 0x6b 0x75
-            -- <Down> = 0x80 0x6b 0x64
-            -- TODO https://github.com/kevinhwang91/nvim-hlslens/issues/18
-            self.skip = true
-            render.clear(false, 0, true)
+        if not self.cmdIncSearching then
+            return
         end
-    end, ns)
+        local b1, b2 = char:byte(1, -1)
+        -- <C-g> = 0x7
+        -- <C-t> = 0x14
+        if b2 == nil and self.currentIdx > 0 and self.total > 0 and (b1 == 0x07 or b1 == 0x14) then
+            -- TODO
+            -- %s/pat is buggy here
+            if self.subCmdDoSearch then
+                self:resetState()
+                render.clear(true, bufnr, true)
+                self.subCmdDoSearch = nil
+            else
+                self:doCmdLineNextIncSearch(bufnr, b1 == 0x07)
+            end
+        end
+    end, self.ns)
 end
 
 function Search:changed()
-    if self.skip then
-        self.skip = false
-        return
-    end
-
     if not incSearchEnabled() then
         return
     end
 
     local cmdl = fn.getcmdline()
+    if cmdl == '' then
+        self.searchStart = self.saveCurosr
+    end
     if self.cmdLine == cmdl then
         return
     else
         self.cmdLine = cmdl
     end
 
-    self.pattern, self.offset, self.multiple = splitCmdLine(cmdl, cmdType)
-
     local bufnr = api.nvim_get_current_buf()
-    render.clear(true)
-
-    if filter(self.pattern) then
-        self:doSearch(bufnr, 50)
-    else
-        self.timer = utils.killableDefer(self.timer, function()
-            if cmdType == fn.getcmdtype() then
-                clearLens(bufnr)
+    if cmdType == ':' then
+        local ok, parsed = pcall(api.nvim_parse_cmd, cmdl, {})
+        if not ok or #parsed.args == 0 or not vim.tbl_contains(incSearchCmd, parsed.cmd) then
+            self.cmdIncSearching = false
+            return
+        end
+        ---@type string
+        local arg = table.concat(parsed.args, ' ')
+        local firstByte = arg:byte(1, 1)
+        local opening
+        local i = 2
+        self.delimClosed = false
+        if parsed.cmd == 'global' then
+            arg = arg:match('^%s*(.*)$')
+        elseif parsed.cmd == 'substitute' then
+            self.subCmdDoSearch = true
+        elseif 48 <= firstByte and firstByte <= 57 or
+            65 <= firstByte and firstByte <= 90 or 97 <= firstByte and firstByte <= 122 then
+            opening = ' '
+            i = 1
+        end
+        local pat
+        if #arg == 1 and parsed.cmd == 'substitute' then
+            pat = fn.getreg('/')
+        elseif #arg == 2 and firstByte == arg:byte(-1) then
+            self.delimClosed = true
+            pat = fn.getreg('/')
+        else
+            opening = opening and opening or string.char(firstByte)
+            local s = arg:find(opening, 2, true)
+            if s then
+                self.delimClosed = true
+                pat = arg:sub(i, s - 1)
+            else
+                pat = arg:sub(i)
             end
-        end, 0)
+        end
+        self.cmdIncSearching = true
+        self.pattern, self.offset, self.multiple = pat, '', false
+        if parsed.cmd == 'substitute' then
+            render.clear(true, bufnr, true)
+            if self.delimClosed then
+                return
+            end
+        end
+    else
+        self.pattern, self.offset, self.multiple = splitCmdLine(cmdl, cmdType)
+    end
+
+    if self.pattern then
+        if filter(self.pattern) then
+            local res = self:doSearch(bufnr)
+            if res and self.subCmdDoSearch and self.currentIdx > 0 and self.total > 0 then
+                local winid = api.nvim_get_current_win()
+                local startPos = api.nvim_win_get_cursor(winid)
+                startPos[2] = startPos[2] + 1
+                local endPos = fn.searchpos(self.pattern, 'cen')
+                render.addWinHighlight(winid, startPos, endPos)
+            end
+        else
+            render.clear(true, bufnr, true)
+        end
     end
 end
 
 function Search:detach(abort)
     self.offset = parseOffset(self.offset)
-
     self.cmdLine = nil
-
-    self.onKey(nil, ns)
+    self.onKey(nil, self.ns)
 
     if self.timer and self.timer:has_ref() then
         self.timer:stop()
@@ -232,26 +326,31 @@ function Search:detach(abort)
         closeFold(self.foldInfo.lnum)
     end
     self.foldInfo = nil
+    render.clear(true, api.nvim_get_current_buf(), true)
+end
+
+local function skipType(typ)
+    return not (typ == '/' or typ == '?' or typ == ':')
 end
 
 function M.attach(typ)
-    if typ == '/' or typ == '?' then
-        Search:attach()
-    end
     cmdType = typ
+    if skipType(typ) then
+        return
+    end
+    Search:attach()
 end
 
-function M.changed(typ)
-    if typ == '/' or typ == '?' then
-        Search:changed()
-    end
+function M.changed()
+    Search:changed()
 end
 
 function M.detach(typ, abort)
-    if typ == '/' or typ == '?' then
-        Search:detach(abort)
-    end
     cmdType = nil
+    if skipType(typ) then
+        return
+    end
+    Search:detach(abort)
 end
 
 local function init()
@@ -260,10 +359,13 @@ local function init()
     Search.pattern = ''
     Search.offset = ''
     Search.multiple = false
-    Search.skip = false
     Search.foldInfo = nil
+    Search.cmdLine = ''
+    Search.saveCurosr = {1, 0}
+    Search.searchStart = Search.saveCurosr
+    Search:resetState()
+    Search.ns = api.nvim_create_namespace('hlslens')
     Search.onKey = vim.on_key and vim.on_key or vim.register_keystroke_callback
-    ns = api.nvim_create_namespace('hlslens')
 end
 
 init()
