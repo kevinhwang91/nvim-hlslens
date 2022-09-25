@@ -2,18 +2,17 @@ local M = {}
 local fn = vim.fn
 local cmd = vim.cmd
 local api = vim.api
+local uv = vim.loop
 
 local utils = require('hlslens.utils')
 local render = require('hlslens.render')
 local config = require('hlslens.config')
 
 local DUMMY_POS
-
 local incsearch
-
 local Search = {}
-
 local cmdType
+local debouncedSearch
 
 local incSearchCmd = {
     'substitute',
@@ -33,11 +32,11 @@ local function fillDummyList(cnt)
     return posList
 end
 
-local function renderLens(bufnr, idx, cnt, pos)
+local function renderLens(idx, cnt, pos)
     -- To build a dummy list for compatibility
     local plist = fillDummyList(cnt)
     plist[idx] = pos
-    render.addLens(bufnr, plist, true, idx, 0)
+    render.addLens(0, plist, true, idx, 0)
 end
 
 local function parseOffset(rawOffset)
@@ -91,7 +90,8 @@ local function splitCmdLine(cmdl, cmdt)
 end
 
 local function filter(pat)
-    if #pat <= 2 then
+    -- \V, \%V, .., etc.
+    if #pat <= 3 then
         if #pat < 2 or pat:sub(1, 1) == [[\]] or pat == '..' then
             return false
         end
@@ -112,7 +112,7 @@ function Search:resetState()
     self.total = 0
 end
 
-function Search:doRender(bufnr, pos)
+function Search:doRender(pos)
     if self.foldInfo then
         closeFold(self.foldInfo.lnum)
         self.foldInfo.lnum = -1
@@ -123,16 +123,15 @@ function Search:doRender(bufnr, pos)
             cmd('norm! zv')
         end
     end
-    render.clear(true, bufnr, true)
-    renderLens(bufnr, self.currentIdx, self.total, pos)
+    render.clear(true, 0, true)
+    renderLens(self.currentIdx, self.total, pos)
 end
 
 ---may_do_incsearch_highlighting
----@param bufnr number
-function Search:doSearch(bufnr)
+function Search:doSearch()
     local ret = false
     api.nvim_win_set_cursor(0, self.searchStart)
-    local pos = fn.searchpos(self.pattern, cmdType == '?' and 'bc' or 'c')
+    local pos = fn.searchpos(self.pattern, cmdType == '?' and 'b' or '')
     local res
     ret, res = pcall(fn.searchcount, {
         recompute = true,
@@ -144,19 +143,18 @@ function Search:doSearch(bufnr)
         if res.incomplete == 0 and res.total and res.total > 0 then
             self.currentIdx = res.current
             self.total = res.total
-            self:doRender(bufnr, pos)
+            self:doRender(pos)
         else
             self:resetState()
-            render.clear(true, bufnr, true)
+            render.clear(true, 0, true)
         end
     end
     return ret
 end
 
 ---may_do_command_line_next_incsearch
----@param bufnr number
 ---@param forward boolean
-function Search:doCmdLineNextIncSearch(bufnr, forward)
+function Search:doCmdLineNextIncSearch(forward)
     local pos
     if self.delimClosed then
         fn.searchpos(self.pattern, 'e')
@@ -185,7 +183,7 @@ function Search:doCmdLineNextIncSearch(bufnr, forward)
         self.currentIdx = self.currentIdx == 1 and self.total or self.currentIdx - 1
     end
     if self.offset == '' and not self.multiple then
-        self:doRender(bufnr, pos)
+        self:doRender(pos)
     end
 end
 
@@ -198,17 +196,18 @@ function Search:attach()
         return
     end
 
-    if vim.o.fdo:find('search') and vim.wo.foldenable then
+    if vim.wo.foldenable and vim.o.fdo:find('search') then
         self.foldInfo = {lnum = -1}
     end
 
     self.cmdLine = ''
+    self.hrtime = nil
+    self.pattern = ''
     self:resetState()
     self.saveCurosr = api.nvim_win_get_cursor(0)
     self.searchStart = self.saveCurosr
-    local bufnr = api.nvim_get_current_buf()
     self.cmdIncSearching = true
-    self.onKey(function(char)
+    vim.on_key(function(char)
         if not self.cmdIncSearching then
             return
         end
@@ -218,34 +217,33 @@ function Search:attach()
         if b2 == nil and self.currentIdx > 0 and self.total > 0 and (b1 == 0x07 or b1 == 0x14) then
             -- TODO
             -- %s/pat is buggy here
+            -- Hack! Type <C-t><C-g> will get rid of incsearch issue for substitute.
+            -- 1. Disable incsearch and current <C-g> or <C-t> will be appended to the cursor
+            -- 2. Delete the appended char;
+            -- 3. Get rid of the issue;
+            -- 4. Redo the previous cancelled action for incsearch.
+            -- <C-h><C-t><C-g> + b1
             if self.subCmdDoSearch then
-                self:resetState()
-                render.clear(true, bufnr, true)
+                cmd('noa set nois')
+                vim.schedule(function()
+                    cmd('noa set is')
+                    api.nvim_feedkeys(('%c%c%c%c'):format(0x08, 0x14, 0x07, b1), 'in', false)
+                end)
                 self.subCmdDoSearch = nil
             else
-                self:doCmdLineNextIncSearch(bufnr, b1 == 0x07)
+                self:doCmdLineNextIncSearch(b1 == 0x07)
             end
         end
     end, self.ns)
+    debouncedSearch:cancel()
 end
 
-function Search:changed()
-    if not cmdType or not incSearchEnabled() then
-        return
-    end
-
-    local cmdl = fn.getcmdline()
-    if cmdl == '' then
-        self.searchStart = self.saveCurosr
-    end
-    if self.cmdLine == cmdl then
-        return
-    else
-        self.cmdLine = cmdl
-    end
-
-    local bufnr = api.nvim_get_current_buf()
-    if cmdType == ':' and api.nvim_parse_cmd then
+function Search:didChange(cmdl)
+    cmdl = cmdl or fn.getcmdline()
+    if cmdType == ':' then
+        if #cmdl > 500 or not api.nvim_parse_cmd then
+            return
+        end
         local ok, parsed = pcall(api.nvim_parse_cmd, cmdl, {})
         if not ok or #parsed.args == 0 or not vim.tbl_contains(incSearchCmd, parsed.cmd) then
             if not ok then
@@ -288,9 +286,12 @@ function Search:changed()
             end
         end
         self.cmdIncSearching = true
+        if self.pattern == pat and not self.subCmdDoSearch then
+            return
+        end
         self.pattern, self.offset, self.multiple = pat, '', false
         if parsed.cmd == 'substitute' then
-            render.clear(true, bufnr, true)
+            render.clear(true, 0, true)
             if self.delimClosed then
                 return
             end
@@ -301,7 +302,7 @@ function Search:changed()
 
     if self.pattern then
         if filter(self.pattern) then
-            local res = self:doSearch(bufnr)
+            local res = self:doSearch()
             if res and self.subCmdDoSearch and self.currentIdx > 0 and self.total > 0 then
                 local winid = api.nvim_get_current_win()
                 local startPos = api.nvim_win_get_cursor(winid)
@@ -310,7 +311,7 @@ function Search:changed()
                 render.addWinHighlight(winid, startPos, endPos)
             end
         else
-            render.clear(true, bufnr, true)
+            render.clear(true, 0, true)
         end
     end
 end
@@ -318,20 +319,15 @@ end
 function Search:detach(abort)
     self.offset = parseOffset(self.offset)
     self.cmdLine = nil
-    self.onKey(nil, self.ns)
-
-    if self.timer and self.timer:has_ref() then
-        self.timer:stop()
-        if not self.timer:is_closing() then
-            self.timer:close()
-        end
-    end
-
+    self.hrtime = nil
+    self.pattern = ''
+    vim.on_key(nil, self.ns)
     if self.foldInfo and abort then
         closeFold(self.foldInfo.lnum)
     end
     self.foldInfo = nil
-    render.clear(true, api.nvim_get_current_buf(), true)
+    debouncedSearch:cancel()
+    render.clear(true, 0, true)
 end
 
 local function skipType(typ)
@@ -347,7 +343,33 @@ function M.attach(typ)
 end
 
 function M.changed()
-    Search:changed()
+    if not cmdType or not incSearchEnabled() then
+        return
+    end
+
+    local self = Search
+    local now = uv.hrtime()
+    local deltaTime = self.hrtime and now - self.hrtime
+    self.hrtime = now
+
+    local cmdl = fn.getcmdline()
+    if cmdl == '' then
+        self.searchStart = self.saveCurosr
+    end
+    if self.cmdLine == cmdl then
+        return
+    end
+    self.cmdLine = cmdl
+
+    -- 10 ms is sufficient to identify whether the user is typing in command line mode or
+    -- emitting key sequences from a key mapping
+    if deltaTime and deltaTime < 1e7 then
+        debouncedSearch()
+        return
+    else
+        debouncedSearch:cancel()
+    end
+    self:didChange(cmdl)
 end
 
 function M.detach(typ, abort)
@@ -370,7 +392,15 @@ local function init()
     Search.searchStart = Search.saveCurosr
     Search:resetState()
     Search.ns = api.nvim_create_namespace('hlslens')
-    Search.onKey = vim.on_key and vim.on_key or vim.register_keystroke_callback
+    Search.hrtime = nil
+    debouncedSearch = require('hlslens.lib.debounce'):new(function(cmdl)
+        if cmdType ~= fn.getcmdtype() then
+            return
+        end
+        Search:didChange(cmdl)
+        -- ^R ^[
+        api.nvim_feedkeys(('%c%c'):format(0x12, 0x1b), 'in', false)
+    end, 300)
 end
 
 init()
