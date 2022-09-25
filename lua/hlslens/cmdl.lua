@@ -230,7 +230,7 @@ function Search:attach()
 end
 
 function Search:changed()
-    if not incSearchEnabled() then
+    if not cmdType or not incSearchEnabled() then
         return
     end
 
