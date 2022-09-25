@@ -87,7 +87,9 @@ function M.cmdLineLeave()
     if shouldRefresh and vim.o.hlsearch then
         mayInitialize()
         vim.schedule(function()
-            M.refresh(true)
+            if status == STATE.START then
+                M.refresh(true)
+            end
         end)
     end
 end
