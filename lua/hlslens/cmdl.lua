@@ -245,9 +245,14 @@ function Search:changed()
     end
 
     local bufnr = api.nvim_get_current_buf()
-    if cmdType == ':' then
+    if cmdType == ':' and api.nvim_parse_cmd then
         local ok, parsed = pcall(api.nvim_parse_cmd, cmdl, {})
         if not ok or #parsed.args == 0 or not vim.tbl_contains(incSearchCmd, parsed.cmd) then
+            if not ok then
+                -- TODO
+                -- may throw error, need an extra pcall command to eat it
+                pcall(cmd, '')
+            end
             self.cmdIncSearching = false
             return
         end
