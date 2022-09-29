@@ -14,14 +14,18 @@ local Search = {}
 local cmdType
 local debouncedSearch
 
-local incSearchCmd = {
-    'substitute',
-    'vglobal',
-    'vimgrep',
-    'vimgrepadd',
-    'lvimgrep',
-    'lvimgrepadd',
-    'global'
+-- TODO
+-- need refactor
+local isCmds = {
+    substitute = 1,
+    snomagic = 1,
+    smagic = 1,
+    vglobal = 2,
+    vimgrep = 2,
+    vimgrepadd = 2,
+    lvimgrep = 2,
+    lvimgrepadd = 2,
+    global = 2,
 }
 
 local function fillDummyList(cnt)
@@ -130,8 +134,9 @@ end
 ---may_do_incsearch_highlighting
 function Search:doSearch()
     local ret = false
+    local flag = self.subCmdDoSearch and 'c' or (cmdType == '?' and 'b' or '')
     api.nvim_win_set_cursor(0, self.searchStart)
-    local pos = fn.searchpos(self.pattern, cmdType == '?' and 'b' or '')
+    local pos = fn.searchpos(self.pattern, flag)
     local res
     ret, res = pcall(fn.searchcount, {
         recompute = true,
@@ -167,6 +172,7 @@ function Search:doCmdLineNextIncSearch(forward)
         fn.searchpos(self.pattern, 'b')
         pos = fn.searchpos(self.pattern, 'b')
     end
+    api.nvim_win_set_cursor(0, cursor)
     if utils.comparePosition(pos, {0, 0}) == 0 then
         return
     end
@@ -245,7 +251,7 @@ function Search:didChange(cmdl)
             return
         end
         local ok, parsed = pcall(api.nvim_parse_cmd, cmdl, {})
-        if not ok or #parsed.args == 0 or not vim.tbl_contains(incSearchCmd, parsed.cmd) then
+        if not ok or #parsed.args == 0 or not isCmds[parsed.cmd] then
             if not ok then
                 -- TODO
                 -- may throw error, need an extra pcall command to eat it
@@ -262,7 +268,7 @@ function Search:didChange(cmdl)
         self.delimClosed = false
         if parsed.cmd == 'global' then
             arg = arg:match('^%s*(.*)$')
-        elseif parsed.cmd == 'substitute' then
+        elseif isCmds[parsed.cmd] == 1 then
             self.subCmdDoSearch = true
         elseif 48 <= firstByte and firstByte <= 57 or
             65 <= firstByte and firstByte <= 90 or 97 <= firstByte and firstByte <= 122 then
@@ -270,7 +276,7 @@ function Search:didChange(cmdl)
             i = 1
         end
         local pat
-        if #arg == 1 and parsed.cmd == 'substitute' then
+        if #arg == 1 and self.subCmdDoSearch then
             pat = fn.getreg('/')
         elseif #arg == 2 and firstByte == arg:byte(-1) then
             self.delimClosed = true
@@ -286,16 +292,15 @@ function Search:didChange(cmdl)
             end
         end
         self.cmdIncSearching = true
-        if self.pattern == pat and not self.subCmdDoSearch then
-            return
-        end
-        self.pattern, self.offset, self.multiple = pat, '', false
-        if parsed.cmd == 'substitute' then
+        if self.subCmdDoSearch then
             render.clear(true, 0, true)
             if self.delimClosed then
                 return
             end
+        elseif self.pattern == pat then
+            return
         end
+        self.pattern, self.offset, self.multiple = pat, '', false
     else
         self.pattern, self.offset, self.multiple = splitCmdLine(cmdl, cmdType)
     end
