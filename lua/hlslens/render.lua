@@ -143,7 +143,7 @@ function M.setVirt(bufnr, lnum, col, chunks, nearest)
             if nearestFloatWhen == 'always' then
                 updateFloatWin(0, {exLnum, exCol}, chunks, lineWidth, gutterSize)
             else
-                if enoughSizeForVirt(0, exLnum, chunks, lineWidth) then
+                if enoughSizeForVirt(0, exLnum, chunks, lineWidth) and fn.foldclosed(exLnum) == -1 then
                     extmark.setVirtEol(bufnr, lnum, chunks, virtPriority)
                     floatwin.close()
                 else
