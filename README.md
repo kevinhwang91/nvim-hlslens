@@ -245,6 +245,26 @@ vim.api.nvim_set_keymap('x', 'g*', [[<Plug>(asterisk-gz*)<Cmd>lua require('hlsle
 vim.api.nvim_set_keymap('x', 'g#', [[<Plug>(asterisk-gz#)<Cmd>lua require('hlslens').start()<CR>]], {})
 ```
 
+#### [nvim-ufo](https://github.com/kevinhwang91/nvim-ufo)
+
+```lua
+-- packer
+use {'kevinhwang91/nvim-ufo', requires = 'kevinhwang91/promise-async'}
+
+-- simply use a global function to demo
+function _G.nN(c)
+    local ok, msg = pcall(vim.cmd, 'norm!' .. vim.v.count1 .. c)
+    if not ok then
+        vim.api.nvim_echo({{msg:match(':(.*)$'), 'ErrorMsg'}}, false, {})
+        return
+    end
+    require('hlslens').start()
+    require('ufo').peekFoldedLinesUnderCursor()
+end
+vim.api.nvim_set_keymap('n', 'n', '<Cmd>lua _G.nN("n")<CR>', {})
+vim.api.nvim_set_keymap('n', 'N', '<Cmd>lua _G.nN("N")<CR>', {})
+```
+
 #### [vim-visual-multi](https://github.com/mg979/vim-visual-multi)
 
 <https://user-images.githubusercontent.com/17562139/144655345-9185df0e-e27e-4877-9ee6-d0acb811c907.mp4>
