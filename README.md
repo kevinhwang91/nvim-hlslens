@@ -204,7 +204,7 @@ require('hlslens').setup({
             indicator = ''
         end
 
-        local lnum, col = posList[idx][1], posList[idx][1]
+        local lnum, col = posList[idx][1], posList[idx][2]
 
         if nearest then
             local cnt = #posList
