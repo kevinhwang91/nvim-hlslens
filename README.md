@@ -204,7 +204,9 @@ require('hlslens').setup({
             indicator = ''
         end
 
-        local lnum, col = unpack(posList[idx])
+        -- local lnum, col = unpack(posList[idx]) -- for Lua5.1 and lesser
+        local lnum, col = posList[idx][1], posList[idx][1] -- for Lua5.2 and greater
+
         if nearest then
             local cnt = #posList
             if indicator ~= '' then
