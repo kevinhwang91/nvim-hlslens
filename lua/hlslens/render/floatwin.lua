@@ -23,7 +23,7 @@ function M.update(row, col, width)
         col = col,
         focusable = false,
         style = 'minimal',
-        zindex = 2048
+        zindex = 150
     }
     local bufnr
     if winid and api.nvim_win_is_valid(winid) then
