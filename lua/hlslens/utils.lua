@@ -140,34 +140,6 @@ function M.matchaddpos(hlgroup, plist, prior, winid)
     return ids
 end
 
-function M.killableDefer(timer, func, delay)
-    vim.validate({
-        timer = {timer, 'userdata', true},
-        func = {func, 'function'},
-        delay = {delay, 'number'}
-    })
-    if timer and timer:has_ref() then
-        timer:stop()
-        if not timer:is_closing() then
-            timer:close()
-        end
-    end
-    timer = uv.new_timer()
-    timer:start(delay, 0, function()
-        vim.schedule(function()
-            if not timer:has_ref() then
-                return
-            end
-            timer:stop()
-            if not timer:is_closing() then
-                timer:close()
-            end
-            func()
-        end)
-    end)
-    return timer
-end
-
 function M.winExecute(winid, func)
     vim.validate({
         winid = {
