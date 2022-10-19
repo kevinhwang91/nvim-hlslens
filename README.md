@@ -56,6 +56,8 @@ use {'kevinhwang91/nvim-hlslens'}
 ### Minimal configuration
 
 ```lua
+require('hlslens').setup()
+
 local kopts = {noremap = true, silent = true}
 
 vim.api.nvim_set_keymap('n', 'n',
@@ -310,14 +312,14 @@ function M.start()
         config = require('hlslens.config')
         lensBak = config.override_lens
         config.override_lens = overrideLens
-        hlslens.start(true)
+        hlslens.start()
     end
 end
 
 function M.exit()
     if hlslens then
         config.override_lens = lensBak
-        hlslens.start(true)
+        hlslens.start()
     end
 end
 

@@ -77,43 +77,9 @@ end
 function M.vcol(winid, pos)
     local vcol = fn.virtcol(pos)
     if not vim.wo[winid].wrap then
-        M.winExecute(winid, function()
-            vcol = vcol - fn.winsaveview().leftcol
-        end)
+        vcol = vcol - M.winExecute(winid, fn.winsaveview).leftcol
     end
     return vcol
-end
-
-function M.hlAttrs(hlgroup)
-    vim.validate({hlgroup = {hlgroup, 'string'}})
-    local attrTbl = {
-        'bold', 'standout', 'underline', 'undercurl', 'italic', 'reverse', 'strikethrough'
-    }
-    local t = {}
-    local hl2tbl = function(gui)
-        local ok, hl = pcall(api.nvim_get_hl_by_name, hlgroup, gui)
-        if not ok then
-            return
-        end
-        local fg, bg, colorFmt = hl.foreground, hl.background, gui and '#%x' or '%s'
-        if fg then
-            t[gui and 'guifg' or 'ctermfg'] = colorFmt:format(fg)
-        end
-        if bg then
-            t[gui and 'guibg' or 'ctermbg'] = colorFmt:format(bg)
-        end
-        hl.foreground, hl.background = nil, nil
-        local attrs = {}
-        for attr in pairs(hl) do
-            if vim.tbl_contains(attrTbl, attr) then
-                table.insert(attrs, attr)
-            end
-        end
-        t[gui and 'gui' or 'cterm'] = #attrs > 0 and attrs or nil
-    end
-    hl2tbl(true)
-    hl2tbl(false)
-    return t
 end
 
 function M.matchaddpos(hlgroup, plist, prior, winid)

@@ -1,10 +1,15 @@
 local M = {}
 
 local api = vim.api
+local limit
 
 local wffi = require('hlslens.wffi')
 
-local function doBuild(pat, limit)
+function M.valid()
+    return true
+end
+
+local function doBuild(pat)
     local startPosList, endPosList = {}, {}
     local cnt = 0
     local regm = wffi.buildRegmatchT(pat)
@@ -35,14 +40,13 @@ local function doBuild(pat, limit)
     return startPosList, endPosList
 end
 
-function M.buildList(pat, limit)
-    return doBuild(pat, limit)
+function M.buildList(pat)
+    return doBuild(pat)
 end
 
-local function init()
+function M.initialize(l)
+    limit = l
     jit.off(doBuild, true)
 end
-
-init()
 
 return M

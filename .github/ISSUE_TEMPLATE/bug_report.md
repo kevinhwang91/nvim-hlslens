@@ -23,6 +23,8 @@ Example:
 -- packer
 use {'kevinhwang91/nvim-hlslens'}
 
+require('hlslens').setup()
+
 local kopts = {noremap = true, silent = true}
 
 vim.api.nvim_set_keymap('n', 'n',

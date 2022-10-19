@@ -1,7 +1,7 @@
 ---@diagnostic disable: undefined-field
 local M = {}
 
-local utils
+local utils = require('hlslens.utils')
 local C
 local ffi
 
@@ -10,29 +10,19 @@ local Cchar_u_VLA
 local Cregmmatch_T
 
 local function getCurWin()
-    local curWin
-    if utils.isWindows() then
-        local err = ffi.new('Error')
-        curWin = C.find_window_by_handle(0, err)
-    else
-        curWin = C.curwin
-    end
-    return curWin
+    local err = ffi.new('Error')
+    return C.find_window_by_handle(0, err)
 end
 
 local function getCurBuf()
-    local curBuf
-    if utils.isWindows() then
-        local err = ffi.new('Error')
-        curBuf = C.find_buffer_by_handle(0, err)
-    else
-        curBuf = C.curbuf
-    end
-    return curBuf
+    local err = ffi.new('Error')
+    return C.find_buffer_by_handle(0, err)
 end
 
 function M.mlGetBufLen(lnum)
-    return tonumber(C.strlen(C.ml_get_buf(getCurBuf(), lnum, false)))
+    local buf = getCurBuf()
+    local ml = C.ml_get_buf(buf, lnum, false)
+    return tonumber(C.strlen(ml))
 end
 
 function M.buildRegmatchT(pat)
@@ -60,18 +50,16 @@ function M.regmatchPos(regm)
 end
 
 function M.vimRegExecMulti(regm, lnum, col)
-    return tonumber(C.vim_regexec_multi(regm, getCurWin(), getCurBuf(), lnum, col, nil, nil))
-end
-
-function M.curWinColOff()
-    return C.curwin_col_off()
+    local wp = getCurWin()
+    local buf = getCurBuf()
+    return tonumber(C.vim_regexec_multi(regm, wp, buf, lnum, col, nil, nil))
 end
 
 local function init()
     ffi = require('ffi')
     setmetatable(M, {__index = ffi})
     C = ffi.C
-    utils = require('hlslens.utils')
+
     if utils.has08() then
         ffi.cdef([[
             typedef int32_t linenr_T;
@@ -100,8 +88,12 @@ local function init()
             colnr_T rmm_maxcol;
         } regmmatch_T;
 
+        typedef struct {} Error;
         typedef struct window_S win_T;
         typedef struct file_buffer buf_T;
+
+        buf_T *find_buffer_by_handle(int buffer, Error *err);
+        win_T *find_window_by_handle(int window, Error *err);
 
         regprog_T *vim_regcomp(char_u *expr_arg, int re_flags);
 
@@ -113,22 +105,8 @@ local function init()
             void *dummy_ptr, int *timed_out);
 
         size_t strlen(const char *s);
-
-        int curwin_col_off(void);
     ]])
 
-    if utils.isWindows() then
-        ffi.cdef([[
-            typedef struct {} Error;
-            buf_T *find_buffer_by_handle(int buffer, Error *err);
-            win_T *find_window_by_handle(int window, Error *err);
-        ]])
-    else
-        ffi.cdef([[
-            win_T *curwin;
-            buf_T *curbuf;
-        ]])
-    end
 
     Cchar_u_VLA = ffi.typeof('char_u[?]')
     Cregmmatch_T = ffi.typeof('regmmatch_T')

@@ -8,9 +8,10 @@ local utils = require('hlslens.utils')
 
 local tname
 local hlsQfId
+local limit
 
 function M.valid(pat)
-    if pat == '' then
+    if pat == '' or vim.bo.bt == 'quickfix' or utils.isCmdLineWin() then
         return false
     end
     for g in pat:gmatch('.?/') do
@@ -49,7 +50,7 @@ local function keepMagicOpt(pattern)
     return pattern
 end
 
-function M.buildList(pat, limit)
+function M.buildList(pat)
     local tf
     if api.nvim_buf_get_name(0) == '' then
         tf = tname
@@ -70,9 +71,7 @@ function M.buildList(pat, limit)
     local originQfId, qwinid = originInfo.id, originInfo.winid
     local qfWinView
     if qwinid ~= 0 then
-        utils.winExecute(qwinid, function()
-            qfWinView = fn.winsaveview()
-        end)
+        qfWinView = utils.winExecute(qwinid, fn.winsaveview)
     end
 
     local hlsQfNr = getQfnrById(hlsQfId)
@@ -88,6 +87,7 @@ function M.buildList(pat, limit)
 
     local ok, msg = pcall(cmd, ('sil noa %d%s /%s/gj %%'):format(limit + 1, grepCmd, pat))
     if not ok then
+        ---@diagnostic disable-next-line: need-check-nil
         if msg:match(':E682:') then
             ok = pcall(cmd, ('sil noa %d%s /\\V%s/gj %%'):format(limit + 1, grepCmd, pat))
         end
@@ -127,11 +127,10 @@ function M.buildList(pat, limit)
     return startPosList, endPosList
 end
 
-local function init()
+function M.initialize(l)
     hlsQfId = 0
     tname = fn.tempname()
+    limit = l
 end
-
-init()
 
 return M

@@ -1,16 +1,13 @@
+" Actually, want to remove this file, but it will break change :(
 if exists('g:loaded_nvim_hlslens')
     finish
 endif
 
-if !has('nvim-0.5')
-    echohl ErrorMsg | echo 'nvim-hlslens failed to initialize, RTFM.' | echohl None
+if !has('nvim-0.6.1')
+    call v:lua.vim.notify('nvim-hlslens failed to initialize, RTFM.')
     finish
 endif
 
 let g:loaded_nvim_hlslens = 1
 
-lua require('hlslens').setup()
-
-com! HlSearchLensToggle lua require('hlslens').toggle()
-com! HlSearchLensEnable lua require('hlslens').enable()
-com! HlSearchLensDisable lua require('hlslens').disable()
+lua vim.schedule(function() require('hlslens').setup(nil, true) end)
