@@ -87,4 +87,11 @@ function M.stop()
     return enabled
 end
 
+function M.exportToQuickfix(isLocation)
+    if not enabled then
+        return false
+    end
+    return require('hlslens.qf').exportRanges(isLocation)
+end
+
 return M

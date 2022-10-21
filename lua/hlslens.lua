@@ -34,6 +34,13 @@ function M.stop()
     return require('hlslens.main').stop()
 end
 
+---
+---@param isLocation? boolean export to location list if true, otherwise export to quickfix list
+---@return boolean ret return true if successful, otherwise return false
+function M.exportLastSearchToQuickfix(isLocation)
+    return require('hlslens.main').exportToQuickfix(isLocation)
+end
+
 function M.setup(opts, warnFlag)
     if not opts and warnFlag then
         vim.schedule(function()

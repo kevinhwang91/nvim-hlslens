@@ -33,12 +33,15 @@ function Position:new(bufnr, changedtick, pattern)
     return o
 end
 
--- make sure run under current buffer
+---make sure run under current buffer
+---@param bufnr? number
+---@return HlslensPosition?
 function Position:compute(bufnr)
     local pattern = fn.getreg('/')
     if pattern == '' then
         return
     end
+    bufnr = bufnr or api.nvim_get_current_buf()
     local o = self.pool[bufnr]
     local changedtick = api.nvim_buf_get_changedtick(bufnr)
     if o and o.changedtick == changedtick and o.pattern == pattern then
