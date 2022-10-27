@@ -16,7 +16,7 @@ local function setQfList(what, action)
     return fn.setqflist({}, action or ' ', what)
 end
 
-local function getLocList(what, winid)
+local function getLocList(winid, what)
     return fn.getloclist(winid or 0, what)
 end
 
@@ -26,24 +26,23 @@ end
 
 local function qftf(qinfo)
     local qfBufnr = api.nvim_get_current_buf()
-    vim.schedule(function()
-        if vim.bo[qfBufnr].bt == 'quickfix' then
-            api.nvim_buf_call(qfBufnr, function()
-                cmd('syntax clear')
-            end)
-        end
-    end)
-    local items
-    if qinfo.quickfix == 1 then
-        items = getQfList({id = qinfo.id, items = 0}).items
-    else
-        items = getLocList({id = qinfo.id, items = 0}, qinfo.winid).items
+    local getListFunc = qinfo.quickfix == 1 and getQfList or function(what0)
+        return getLocList(qinfo.winid, what0)
     end
+    local qfList = getListFunc({id = qinfo.id, items = 0})
+    local id, items = qfList.id, qfList.items
     local res = {}
     for i = qinfo.start_idx, qinfo.end_idx do
         local e = items[i]
         table.insert(res, e.text)
     end
+    vim.schedule(function()
+        if vim.bo[qfBufnr].bt == 'quickfix' and getListFunc({id = 0}).id == id then
+            api.nvim_buf_call(qfBufnr, function()
+                cmd('syntax clear')
+            end)
+        end
+    end)
     return res
 end
 
@@ -69,7 +68,7 @@ function QF.exportRanges(isLocation)
             col = col,
             end_lnum = eList[i][1],
             end_col = eList[i][2] + 1,
-            text = text
+            text = (#text > 300 and text:sub(1, 300) .. ' ⋯' or text):gsub('%z', '^@')
         })
     end
     local idx = pos.nearestIdx
@@ -86,7 +85,7 @@ function QF.exportRanges(isLocation)
         quickfixtextfunc = qftf
     }
     local action
-    local title = isLocation and getLocList({title = 1}).title or getQfList({title = 1}).title
+    local title = isLocation and getLocList(0, {title = 1}).title or getQfList({title = 1}).title
     if title:match('^hlslens bufnr:') then
         action = 'r'
     end
