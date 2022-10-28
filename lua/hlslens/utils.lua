@@ -77,7 +77,7 @@ end
 function M.vcol(winid, pos)
     local vcol = fn.virtcol(pos)
     if not vim.wo[winid].wrap then
-        vcol = vcol - M.winExecute(winid, fn.winsaveview).leftcol
+        vcol = vcol - M.winCall(winid, fn.winsaveview).leftcol
     end
     return vcol
 end
@@ -106,26 +106,34 @@ function M.matchaddpos(hlgroup, plist, prior, winid)
     return ids
 end
 
-function M.winExecute(winid, func)
-    vim.validate({
-        winid = {
-            winid, function(w)
-                return w and api.nvim_win_is_valid(w)
-            end, 'a valid window'
-        },
-        func = {func, 'function'}
-    })
-
-    local curWinid = api.nvim_get_current_win()
-    local noaSetWin = 'noa call nvim_set_current_win(%d)'
-    if curWinid ~= winid then
+---
+---@param winid number
+---@param f fun(): any
+---@return ...
+function M.winCall(winid, f)
+    if winid == 0 or winid == api.nvim_get_current_win() then
+        return f()
+    else
+        local curWinid = api.nvim_get_current_win()
+        local noaSetWin = 'noa call nvim_set_current_win(%d)'
         cmd(noaSetWin:format(winid))
-    end
-    local ret = func()
-    if curWinid ~= winid then
+        local r = {pcall(f)}
         cmd(noaSetWin:format(curWinid))
+        assert(r[1], r[2])
+        return unpack(r, 2)
     end
-    return ret
+end
+
+---
+---@param pattern string
+---@param flags? string
+---@param stopline? number
+---@param timeout? number
+---@param skip? any
+---@return
+function M.searchPosSafely(pattern, flags, stopline, timeout, skip)
+    local ok, res = pcall(fn.searchpos, pattern, flags, stopline, timeout, skip)
+    return ok and res or {0, 0}
 end
 
 return M

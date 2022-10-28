@@ -76,7 +76,10 @@ function CmdLine:searchRange(pattern)
     local range
     local flag = self.isSubstitute and 'c' or (self.type == '?' and 'b' or '')
     api.nvim_win_set_cursor(0, self.searchStart)
-    local pos = fn.searchpos(pattern, flag)
+    local pos = utils.searchPosSafely(pattern, flag)
+    if utils.comparePosition(pos, {0, 0}) == 0 then
+        return
+    end
     local ok, res = pcall(fn.searchcount, {
         recompute = true,
         maxcount = 100000,
@@ -86,7 +89,7 @@ function CmdLine:searchRange(pattern)
     if ok and res.incomplete == 0 and res.total and res.total > 0 then
         self.currentIdx = res.current
         self.total = res.total
-        local endPos = fn.searchpos(pattern, 'cenW')
+        local endPos = utils.searchPosSafely(pattern, 'cenW')
         self.matchStart, self.matchEnd = decPos(pos), decPos(endPos)
         range = {pos, endPos}
     end
@@ -102,11 +105,11 @@ function CmdLine:incSearchPos(forward, pattern)
     local cursor = self.matchEnd
     api.nvim_win_set_cursor(0, cursor)
     if forward then
-        pos = fn.searchpos(pattern, '')
+        pos = utils.searchPosSafely(pattern, '')
         self.currentIdx = self.currentIdx == self.total and 1 or self.currentIdx + 1
     else
-        fn.searchpos(pattern, 'b')
-        pos = fn.searchpos(pattern, 'b')
+        utils.searchPosSafely(pattern, 'b')
+        pos = utils.searchPosSafely(pattern, 'b')
         self.currentIdx = self.currentIdx == 1 and self.total or self.currentIdx - 1
     end
     api.nvim_win_set_cursor(0, cursor)
@@ -114,7 +117,7 @@ function CmdLine:incSearchPos(forward, pattern)
         self.searchStart = self.matchStart
     end
     vim.schedule(function()
-        self.matchStart = decPos(fn.searchpos(pattern, 'bcnW'))
+        self.matchStart = decPos(utils.searchPosSafely(pattern, 'bcnW'))
         self.matchEnd = api.nvim_win_get_cursor(0)
     end)
     return pos

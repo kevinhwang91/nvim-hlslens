@@ -71,7 +71,7 @@ function M.buildList(pat)
     local originQfId, qwinid = originInfo.id, originInfo.winid
     local qfWinView
     if qwinid ~= 0 then
-        qfWinView = utils.winExecute(qwinid, fn.winsaveview)
+        qfWinView = utils.winCall(qwinid, fn.winsaveview)
     end
 
     local hlsQfNr = getQfnrById(hlsQfId)
@@ -113,7 +113,7 @@ function M.buildList(pat)
         cmd(('sil %s %dchi'):format(au, originNr))
 
         if qfWinView then
-            utils.winExecute(qwinid, function()
+            utils.winCall(qwinid, function()
                 fn.winrestview(qfWinView)
             end)
         end
