@@ -18,6 +18,8 @@ local utils = require('hlslens.utils')
 ---@field nearestRelIdx number
 ---@field searchForward boolean
 ---@field foldedLine number
+---@field visualAreaStart? number[]
+---@field visualAreaEnd? number[]
 local Position = {
     initialized = false
 }
@@ -45,7 +47,17 @@ function Position:compute(bufnr)
     local o = self.pool[bufnr]
     local changedtick = api.nvim_buf_get_changedtick(bufnr)
     if o and o.changedtick == changedtick and o.pattern == pattern then
-        return o
+        local hit = true
+        if pattern:find([[\%V]], 1, true) then
+            local vs = api.nvim_buf_get_mark(bufnr, '<')
+            local ve = api.nvim_buf_get_mark(bufnr, '>')
+            hit = (not o.visualAreaStart or utils.comparePosition(vs, o.visualAreaStart) == 0) and
+                (not o.visualAreaEnd or utils.comparePosition(ve, o.visualAreaEnd) == 0)
+            o.visualAreaStart, o.visualAreaEnd = vs, ve
+        end
+        if hit then
+            return o
+        end
     end
     if not self.rangeModule.valid(pattern) then
         return
