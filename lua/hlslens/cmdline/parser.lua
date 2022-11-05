@@ -51,6 +51,10 @@ function CmdLineParser:patternChanged()
     return self.lastPattern ~= self.pattern
 end
 
+function CmdLineParser:isEmptyVisualAreaPattern()
+    return self.pattern == [[\%V]]
+end
+
 function CmdLineParser:hasOffset()
     return self.offset ~= '' or self.multiple
 end

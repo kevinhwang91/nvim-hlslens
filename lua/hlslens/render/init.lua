@@ -14,6 +14,8 @@ local winhl = require('hlslens.render.winhl')
 local extmark = require('hlslens.render.extmark')
 local floatwin = require('hlslens.render.floatwin')
 
+local DUMMY_POS
+
 ---@diagnostic disable: undefined-doc-name
 ---@alias HlslensRenderState
 ---| STOP #1
@@ -29,8 +31,6 @@ local START = 2
 ---@field force? boolean
 ---@field nearestOnly boolean
 ---@field nearestFloatWhen string
----@field floatVirtId number
----@field floatShadowBlend number
 ---@field calmDown boolean
 ---@field stopDisposes HlslensDisposable[]
 ---@field disposables HlslensDisposable[]
@@ -83,7 +83,8 @@ local function refreshCurrentBuf()
         return
     end
 
-    local cursor = api.nvim_win_get_cursor(0)
+    local winid = api.nvim_get_current_win()
+    local cursor = api.nvim_win_get_cursor(winid)
     local curPos = {cursor[1], cursor[2] + 1}
     local topLine = fn.line('w0')
     local hit = pos:buildInfo(curPos, topLine)
@@ -103,7 +104,7 @@ local function refreshCurrentBuf()
     end
     local idx, rIdx = pos.nearestIdx, pos.nearestRelIdx
     self.addWinHighlight(0, pos.sList[idx], pos.eList[idx])
-    self:doLens(pos.sList, not pos.offsetPos, idx, rIdx, {topLine, botLine}, {fs, fe})
+    self:doLens(bufnr, pos.sList, not pos.offsetPos, idx, rIdx, {topLine, botLine}, {fs, fe})
 end
 
 function Render:createEvents()
@@ -145,6 +146,16 @@ local function enoughSizeForVirt(winid, lnum, text, lineWidth)
         remainingVcol = math.max(0, lineWidth - endVcol)
     end
     return remainingVcol > #text
+end
+
+function Render:addNearestLens(bufnr, pos, idx, cnt)
+    -- To build a dummy list for compatibility
+    local plist = {}
+    for _ = 1, cnt do
+        table.insert(plist, DUMMY_POS)
+    end
+    plist[idx] = pos
+    self:addLens(bufnr, plist, true, idx, 0)
 end
 
 -- Add lens template, can be overridden by `override_lens`
@@ -221,6 +232,20 @@ end
 -- compatible with old demo
 Render.set_virt = Render.setVirt
 
+function Render:setVisualArea()
+    local function calibrate(pos)
+        return {pos[1] - 1, pos[2]}
+    end
+
+    local start = calibrate(api.nvim_buf_get_mark(0, '<'))
+    local finish = calibrate(api.nvim_buf_get_mark(0, '>'))
+    extmark:setHighlight(0, 'Visual', start, finish)
+end
+
+function Render:clearVisualArea()
+    extmark:clearHighlight(0)
+end
+
 function Render.addWinHighlight(winid, startPos, endPos)
     winhl.addHighlight(winid, startPos, endPos, 'HlSearchNear')
 end
@@ -229,7 +254,7 @@ local function getIdxLnum(posList, i)
     return posList[i][1]
 end
 
-function Render:doLens(startPosList, nearest, idx, relIdx, limitRange, foldRange)
+function Render:doLens(bufnr, startPosList, nearest, idx, relIdx, limitRange, foldRange)
     local posLen = #startPosList
     local idxLnum = getIdxLnum(startPosList, idx)
 
@@ -291,7 +316,6 @@ function Render:doLens(startPosList, nearest, idx, relIdx, limitRange, foldRange
         lineRenderList[idxLnum] = nil
     end
 
-    local bufnr = api.nvim_get_current_buf()
     extmark:clearBuf(bufnr)
     self:addLens(bufnr, startPosList, true, idx, relIdx)
     for _, idxPairs in pairs(lineRenderList) do
@@ -386,6 +410,7 @@ function Render:initialize(namespace)
     table.insert(self.disposables, floatwin:initialize(config.float_shadow_blend))
     self.ns = namespace
     self.initialized = true
+    DUMMY_POS = {1, 1}
     return self
 end
 

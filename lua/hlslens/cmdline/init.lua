@@ -12,8 +12,6 @@ local fold       = require('hlslens.cmdline.fold')
 local debounce   = require('hlslens.lib.debounce')
 local disposable = require('hlslens.lib.disposable')
 
-local DUMMY_POS
-
 ---@class HlslensCmdLine
 ---@field attached boolean
 ---@field incSearch boolean
@@ -25,6 +23,7 @@ local DUMMY_POS
 ---@field hrtime number
 ---@field parser HlslensCmdLineParser
 ---@field isSubstitute boolean
+---@field isVisualArea boolean
 ---@field searching boolean
 ---@field fold? HlslensCmdLineIncSearchFold
 ---@field debouncedSearch HlslensDebounce
@@ -35,16 +34,6 @@ local CmdLine = {
     initialized = false,
     disposables = {}
 }
-
-local function renderLens(idx, cnt, pos)
-    -- To build a dummy list for compatibility
-    local plist = {}
-    for _ = 1, cnt do
-        table.insert(plist, DUMMY_POS)
-    end
-    plist[idx] = pos
-    render:addLens(0, plist, true, idx, 0)
-end
 
 local function decPos(pos)
     return {pos[1], math.max(0, pos[2] - 1)}
@@ -63,7 +52,7 @@ function CmdLine:doRender(pos, endPos)
     if endPos then
         render.addWinHighlight(0, pos, endPos)
     end
-    renderLens(self.currentIdx, self.total, pos)
+    render:addNearestLens(0, pos, self.currentIdx, self.total)
     if self.fold then
         self.fold:expand(pos[1])
     end
@@ -123,8 +112,21 @@ function CmdLine:incSearchPos(forward, pattern)
     return pos
 end
 
+function CmdLine:toggleHlSearch(enable)
+    if not self.attached then
+        return
+    end
+    if enable then
+        cmd('if !&hlsearch | noa set hlsearch | end')
+        cmd('if !&is | noa set is | end')
+    else
+        cmd('noa set nohlsearch | noa set nois')
+    end
+end
+
 function CmdLine:attach(typ)
-    self.attached = self.incSearch and vim.o.is and (typ == '/' or typ == '?' or typ == ':')
+    self.attached = self.incSearch and (typ == '/' or typ == '?' or typ == ':') and
+        vim.o.hls and vim.o.is
     if not self.attached then
         return
     end
@@ -138,6 +140,7 @@ function CmdLine:attach(typ)
     end
 
     self.parser = parser:new(typ)
+    self:toggleHlSearch(false)
     self:resetState()
     local cursor = api.nvim_win_get_cursor(0)
     self.searchStart = cursor
@@ -214,6 +217,7 @@ function CmdLine:detach(typ, abort)
     if not self.attached or self.type ~= typ then
         return
     end
+    self:toggleHlSearch(true)
     self.attached = false
     self.parser = nil
     self.hrtime = nil
@@ -224,6 +228,10 @@ function CmdLine:detach(typ, abort)
         end
     end
     self.fold = nil
+    if self.isVisualArea then
+        render:clearVisualArea()
+    end
+    self.isVisualArea = false
     self.debouncedSearch:cancel()
 end
 
@@ -236,19 +244,32 @@ function CmdLine:onChanged()
     local deltaTime = self.hrtime and now - self.hrtime
     self.hrtime = now
 
-    self.parser:setLine(fn.getcmdline())
+    local line = fn.getcmdline()
+    self.parser:setLine(line)
     if not self.parser:lineChanged() then
         return
     end
+
+    local isVisualArea = line:find([[\%V]], 1, true) ~= nil
+    if isVisualArea ~= self.isVisualArea then
+        if isVisualArea then
+            render:setVisualArea()
+        else
+            render:clearVisualArea()
+        end
+    end
+    self.isVisualArea = isVisualArea
 
     -- 10 ms is sufficient to identify whether the user is typing in command line mode or
     -- emitting key sequences from a key mapping
     if deltaTime and deltaTime < 1e7 then
         self.debouncedSearch()
+        self:toggleHlSearch(false)
         return
     else
         self.debouncedSearch:cancel()
     end
+    self:toggleHlSearch(not self.parser:isEmptyVisualAreaPattern())
     self:didChange()
 end
 
@@ -272,7 +293,6 @@ function CmdLine:initialize(ns)
         return self
     end
     self.incSearch = config.enable_incsearch
-    DUMMY_POS = {1, 1}
     self.ns = ns
     self.debouncedSearch = debounce(function()
         if not self.attached or self.type ~= fn.getcmdtype() then
