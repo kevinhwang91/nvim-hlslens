@@ -75,7 +75,7 @@ function QF.exportRanges(isLocation)
     if not idx then
         local cursor = api.nvim_win_get_cursor(0)
         local curPos = {cursor[1], cursor[2] + 1}
-        pos:buildInfo(curPos, fn.line('w0'))
+        pos:buildInfo(curPos, fn.line('w0'), fn.line('w$'))
         idx = pos.nearestIdx
     end
     local what = {

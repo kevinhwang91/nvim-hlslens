@@ -86,8 +86,8 @@ local function refreshCurrentBuf()
     local winid = api.nvim_get_current_win()
     local cursor = api.nvim_win_get_cursor(winid)
     local curPos = {cursor[1], cursor[2] + 1}
-    local topLine = fn.line('w0')
-    local hit = pos:buildInfo(curPos, topLine)
+    local topLine, botLine = fn.line('w0'), fn.line('w$')
+    local hit = pos:buildInfo(curPos, topLine, botLine)
     if self.calmDown then
         if not pos:cursorInRange(curPos) then
             self:doNohAndStop()
@@ -97,14 +97,16 @@ local function refreshCurrentBuf()
         return
     end
 
-    local botLine = pos.botLine or fn.line('w$')
     local fs, fe = pos.foldedLine, -1
     if fs ~= -1 then
         fe = fn.foldclosedend(curPos[1])
     end
     local idx, rIdx = pos.nearestIdx, pos.nearestRelIdx
-    self.addWinHighlight(0, pos.sList[idx], pos.eList[idx])
-    self:doLens(bufnr, pos.sList, not pos.offsetPos, idx, rIdx, {topLine, botLine}, {fs, fe})
+    local sList, eList = pos.sList, pos.eList
+    self.addWinHighlight(0, sList[idx], eList[idx])
+    self:doLens(bufnr, sList, not pos.offsetPos, idx, rIdx, {topLine, botLine}, {fs, fe})
+    event:emit('LensUpdated', winid, pos.pattern, pos.changedtick, sList, eList, idx, rIdx,
+               {topLine, botLine})
 end
 
 function Render:createEvents()

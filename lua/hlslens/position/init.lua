@@ -12,8 +12,6 @@ local utils = require('hlslens.utils')
 ---@field poolCount number
 ---@field sList table
 ---@field eList table
----@field topLine number
----@field botLine number
 ---@field nearestIdx number
 ---@field nearestRelIdx number
 ---@field searchForward boolean
@@ -84,34 +82,55 @@ function Position:compute(bufnr)
     return o
 end
 
-local function nearestIndex(sList, eList, curPos, topl, botl)
-    local idx = utils.binSearch(sList, curPos, utils.comparePosition)
+function Position:nearestIndex(curPos, curFoldedLnum, topl, botl)
+    local idx = utils.binSearch(self.sList, curPos, utils.comparePosition)
+    local len = #self.sList
     if idx > 0 then
         return idx, 0
     else
         idx = -idx - 1
         if idx == 0 then
-            return 1, 1
-        elseif idx == #sList then
-            return #sList, -1
+            if curFoldedLnum > 0 and curFoldedLnum == fn.foldclosed(self.sList[1][1]) then
+                return 1, 0
+            else
+                return 1, 1
+            end
+        elseif idx == len then
+            return len, -1
         end
     end
     local loIdx = idx
     local hiIdx = idx + 1
     local relIdx = -1
 
-    local loIdxLnum = sList[loIdx][1]
-    local hiIdxLnum = sList[hiIdx][1]
-    local midLnum = math.ceil((hiIdxLnum + loIdxLnum) / 2) - 1
-    local curLnum = curPos[1]
-
-    if topl > loIdxLnum or midLnum < curLnum then
-        -- fn.line('w$') may be expensive while scrolling down
-        botl = botl or fn.line('w$')
-        if botl >= hiIdxLnum then
-            relIdx = 1
-            idx = idx + 1
+    local loIdxLnum = self.sList[loIdx][1]
+    local hiIdxLnum = self.sList[hiIdx][1]
+    local foldedLnum = fn.foldclosed(hiIdxLnum)
+    if foldedLnum > 0 then
+        hiIdxLnum = foldedLnum
+        if hiIdxLnum == curFoldedLnum then
+            return hiIdx, 0
         end
+    end
+    if curFoldedLnum > 0 and curFoldedLnum == fn.foldclosed(loIdxLnum) then
+        return loIdx, 0
+    end
+    local wv = fn.winsaveview()
+    local loWinLine, hiWinLine = 0, 0
+    local curWinLine = fn.winline()
+    if topl <= loIdxLnum then
+        api.nvim_win_set_cursor(0, {loIdxLnum, 0})
+        loWinLine = fn.winline()
+    end
+    if botl >= hiIdxLnum then
+        api.nvim_win_set_cursor(0, {hiIdxLnum, 0})
+        hiWinLine = fn.winline()
+    end
+    fn.winrestview(wv)
+    if hiWinLine > 0 and (loWinLine == 0 or
+        math.ceil((hiWinLine - loWinLine) / 2) - 1 < curWinLine - loWinLine) then
+        relIdx = 1
+        idx = idx + 1
     end
 
     if relIdx == 1 and idx > 1 then
@@ -124,13 +143,13 @@ local function nearestIndex(sList, eList, curPos, topl, botl)
         -- nearest index locate at start of second 'abc',
         -- but current position is between start of
         -- previous index position and end of current index position
-        if utils.comparePosition(curPos, eList[idx - 1]) <= 0 then
+        if utils.comparePosition(curPos, self.eList[idx - 1]) <= 0 then
             idx = idx - 1
             relIdx = -1
         end
     end
 
-    return idx, relIdx, botl
+    return idx, relIdx
 end
 
 local function getOffsetPos(s, e, obyte)
@@ -223,9 +242,10 @@ end
 
 ---
 ---@param topLine number
-function Position:buildInfo(curPos, topLine)
-    local idx, rIdx, botLine = nearestIndex(self.sList, self.eList, curPos, topLine)
-    self.topLine, self.botLine = topLine, botLine
+---@param botLine number
+function Position:buildInfo(curPos, topLine, botLine)
+    local foldedLine = fn.foldclosed(curPos[1])
+    local idx, rIdx = self:nearestIndex(curPos, foldedLine, topLine, botLine)
     local sp = self.sList[idx]
     local ep = self.eList[idx]
 
@@ -255,7 +275,6 @@ function Position:buildInfo(curPos, topLine)
         offsetPos = sp
     end
     self.offsetPos = offsetPos
-    local foldedLine = fn.foldclosed(curPos[1])
     local searchForward = vim.v.searchforward == 1
     return self:update(idx, rIdx, searchForward, foldedLine)
 end
