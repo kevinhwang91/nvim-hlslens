@@ -6,7 +6,7 @@ local api = vim.api
 local utils = require('hlslens.utils')
 local winMatchIds = {}
 
-function M.addHighlight(winid, startPos, endPos, hlgroup)
+function M.addHighlight(winid, startPos, endPos, hlgroup, priority)
     winid = winid == 0 and api.nvim_get_current_win() or winid
     M.clearHighlight()
 
@@ -23,7 +23,7 @@ function M.addHighlight(winid, startPos, endPos, hlgroup)
         table.insert(pos, {eLnum, 1, eCol})
     end
 
-    local matchids = utils.matchaddpos(hlgroup, pos, 1, winid)
+    local matchids = utils.matchAddPos(hlgroup, pos, priority, winid)
     winMatchIds = {winid, matchids}
     return matchids
 end

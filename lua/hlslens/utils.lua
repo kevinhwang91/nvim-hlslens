@@ -2,8 +2,9 @@ local M = {}
 local fn = vim.fn
 local api = vim.api
 local cmd = vim.cmd
-local uv = vim.loop
 
+---
+---@return fun(): boolean
 M.has08 = (function()
     local has08
     return function()
@@ -14,16 +15,18 @@ M.has08 = (function()
     end
 end)()
 
-M.isWindows = (function()
-    local cache
-    return function()
-        if cache == nil then
-            cache = uv.os_uname().sysname == 'Windows_NT'
-        end
-        return cache
-    end
-end)()
+---
+---@param winid number
+---@return boolean
+function M.isWinValid(winid)
+    return type(winid) == 'number' and winid > 0 and api.nvim_win_is_valid(winid)
+end
 
+---
+---@param items table
+---@param element any
+---@param comp fun(any, any)
+---@return number
 function M.binSearch(items, element, comp)
     vim.validate({items = {items, 'table'}, comp = {comp, 'function'}})
     local min, max, mid = 1, #items, 1
@@ -42,6 +45,10 @@ function M.binSearch(items, element, comp)
     return -min
 end
 
+---
+---@param p1 number[]
+---@param p2 number[]
+---@return number|-1|0|1
 function M.comparePosition(p1, p2)
     if p1[1] == p2[1] then
         if p1[2] == p2[2] then
@@ -61,11 +68,17 @@ function M.getWinInfo(winid)
     return winfos[1]
 end
 
+---
+---@param winid number
+---@return number
 function M.textoff(winid)
     vim.validate({winid = {winid, 'number'}})
     return M.getWinInfo(winid).textoff
 end
 
+---
+---@param bufnr? number
+---@return boolean
 function M.isCmdLineWin(bufnr)
     local function isCmdWin()
         return fn.bufname() == '[Command Line]'
@@ -74,6 +87,10 @@ function M.isCmdLineWin(bufnr)
     return bufnr and api.nvim_buf_call(bufnr, isCmdWin) or isCmdWin()
 end
 
+---
+---@param winid number
+---@param pos number[]
+---@return number
 function M.vcol(winid, pos)
     local vcol = fn.virtcol(pos)
     if not vim.wo[winid].wrap then
@@ -82,7 +99,23 @@ function M.vcol(winid, pos)
     return vcol
 end
 
-function M.matchaddpos(hlgroup, plist, prior, winid)
+---
+---@param winid number
+---@param lnum number
+---@return number
+function M.foldClosed(winid, lnum)
+    return M.winCall(winid, function()
+        return fn.foldclosed(lnum)
+    end)
+end
+
+---
+---@param hlgroup string
+---@param plist table
+---@param prior? number
+---@param winid? number
+---@return number[]
+function M.matchAddPos(hlgroup, plist, prior, winid)
     vim.validate({
         hlgroup = {hlgroup, 'string'},
         plist = {plist, 'table'},
@@ -130,7 +163,7 @@ end
 ---@param stopline? number
 ---@param timeout? number
 ---@param skip? any
----@return
+---@return number[]
 function M.searchPosSafely(pattern, flags, stopline, timeout, skip)
     local ok, res = pcall(fn.searchpos, pattern, flags, stopline, timeout, skip)
     return ok and res or {0, 0}

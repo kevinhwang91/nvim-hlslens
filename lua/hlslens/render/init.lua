@@ -198,13 +198,21 @@ function Render:addLens(bufnr, startPosList, nearest, idx, relIdx)
     self.setVirt(bufnr, lnum - 1, col - 1, chunks, nearest)
 end
 
-function Render.setVirt(bufnr, lnum, col, chunks, nearest)
+function Render:listVirtTextInfos(bufnr, row, endRow)
+    return extmark:listVirtEol(bufnr, row, endRow)
+end
+
+function Render:setVirtText(bufnr, row, virtText, opts)
+    return extmark:setVirtText(bufnr, row, virtText, opts)
+end
+
+function Render.setVirt(bufnr, row, col, chunks, nearest)
     local self = Render
     local when = self.nearestFloatWhen
-    local exLnum, exCol = lnum + 1, col + 1
+    local exLnum, exCol = row + 1, col + 1
     if nearest and (when == 'auto' or when == 'always') then
         if utils.isCmdLineWin(bufnr) then
-            extmark:setVirtEol(bufnr, lnum, chunks)
+            extmark:setVirtText(bufnr, row, chunks)
         else
             local winid = fn.bufwinid(bufnr ~= 0 and bufnr or '')
             if winid == -1 then
@@ -218,7 +226,7 @@ function Render.setVirt(bufnr, lnum, col, chunks, nearest)
                 floatwin:updateFloatWin(winid, pos, chunks, text, lineWidth, gutterSize)
             else
                 if enoughSizeForVirt(winid, exLnum, text, lineWidth) then
-                    extmark:setVirtEol(bufnr, lnum, chunks)
+                    extmark:setVirtText(bufnr, row, chunks)
                     floatwin:close()
                 else
                     floatwin:updateFloatWin(winid, pos, chunks, text, lineWidth, gutterSize)
@@ -226,7 +234,7 @@ function Render.setVirt(bufnr, lnum, col, chunks, nearest)
             end
         end
     else
-        extmark:setVirtEol(bufnr, lnum, chunks)
+        extmark:setVirtText(bufnr, row, chunks)
     end
 end
 

@@ -6,14 +6,29 @@ local Extmark = {
     initialized = false
 }
 
-function Extmark:setVirtEol(bufnr, lnum, chunks, opts)
+function Extmark:listVirtEol(bufnr, row, endRow)
+    local marks = api.nvim_buf_get_extmarks(bufnr, self.ns, {row, 0}, {endRow, -1},
+                                            {details = true})
+    local res = {}
+    for _, mark in ipairs(marks) do
+        local details = mark[4]
+        local s = mark[2]
+        if s and details.virt_text and details.virt_text_pos == 'eol' then
+            table.insert(res, {row = s, virtText = details.virt_text})
+        end
+    end
+    return res
+end
+
+function Extmark:setVirtText(bufnr, row, virtText, opts)
     bufnr = bufnr == 0 and api.nvim_get_current_buf() or bufnr
     self.bufs[bufnr] = true
     opts = opts or {}
-    return api.nvim_buf_set_extmark(bufnr, self.ns, lnum, -1, {
+    return api.nvim_buf_set_extmark(bufnr, self.ns, row, 0, {
         id = opts.id,
-        virt_text = chunks,
-        hl_mode = 'combine',
+        virt_text = virtText,
+        virt_text_win_col = opts.virt_text_win_col,
+        hl_mode = opts.hl_mode or 'combine',
         priority = opts.priority or self.priority
     })
 end

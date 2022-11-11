@@ -62,7 +62,7 @@ function FloatWin:updateFloatWin(winid, pos, chunks, text, lineWidth, gutterSize
                 table.insert(newChunks, {t, highlight.hlBlendGroups()[hlgroup]})
             end
         end
-        self.virtTextId = extmark:setVirtEol(self.bufnr, 0, newChunks, {id = self.virtTextId})
+        self.virtTextId = extmark:setVirtText(self.bufnr, 0, newChunks, {id = self.virtTextId})
     else
         self:open(height, floatCol, #text)
         vim.wo[self.winid].winhl = 'Normal:HlSearchFloat'
