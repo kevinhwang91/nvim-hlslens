@@ -118,9 +118,8 @@ function CmdLine:toggleHlSearch(enable)
     end
     if enable then
         cmd('if !&hlsearch | noa set hlsearch | end')
-        cmd('if !&is | noa set is | end')
     else
-        cmd('noa set nohlsearch | noa set nois')
+        cmd('noa set nohlsearch')
     end
 end
 
@@ -140,7 +139,6 @@ function CmdLine:attach(typ)
     end
 
     self.parser = parser:new(typ)
-    self:toggleHlSearch(false)
     self:resetState()
     local cursor = api.nvim_win_get_cursor(0)
     self.searchStart = cursor
@@ -264,13 +262,19 @@ function CmdLine:onChanged()
     -- emitting key sequences from a key mapping
     if deltaTime and deltaTime < 1e7 then
         self.debouncedSearch()
-        self:toggleHlSearch(false)
+        if self.type ~= ':' and isVisualArea then
+            local cursor = api.nvim_win_get_cursor(0)
+            -- toggle hlsearch depends on whether cursor is moved or not
+            self:toggleHlSearch(utils.comparePosition(cursor, self.searchStart) ~= 0)
+        else
+            vim.v.hlsearch = 0
+        end
         return
     else
         self.debouncedSearch:cancel()
     end
-    self:toggleHlSearch(not self.parser:isEmptyVisualAreaPattern())
     self:didChange()
+    self:toggleHlSearch(not self.parser:isEmptyVisualAreaPattern())
 end
 
 local function validNoHlSearchSimply()
