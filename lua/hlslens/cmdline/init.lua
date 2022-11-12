@@ -30,6 +30,7 @@ local disposable = require('hlslens.lib.disposable')
 ---@field searchStart number[] (1, 0)-indexed position
 ---@field matchStart number[] (1, 0)-indexed position
 ---@field matchEnd number[] (1, 0)-indexed position
+---@field keyCode number[]
 local CmdLine = {
     initialized = false,
     disposables = {}
@@ -42,6 +43,15 @@ end
 function CmdLine:resetState()
     self.currentIdx = 0
     self.total = 0
+end
+
+---
+---@return boolean
+function CmdLine:typeUpDown()
+    -- <Up> = 0x80 0x6b 0x75
+    -- <Down> = 0x80 0x6b 0x64
+    return self.keyCode[1] == 0x80 and self.keyCode[2] == 0x6b and
+        (self.keyCode[3] == 0x75 or self.keyCode[3] == 0x64)
 end
 
 ---
@@ -146,11 +156,13 @@ function CmdLine:attach(typ)
     self.matchEnd = cursor
     self.isSubstitute = false
     self.searching = true
+    self.keyCode = {}
     vim.on_key(function(char)
         if not self.searching then
             return
         end
-        local b1, b2 = char:byte(1, -1)
+        local b1, b2, b3 = char:byte(1, -1)
+        self.keyCode = {b1, b2, b3}
         -- <C-g> = 0x7
         -- <C-t> = 0x14
         if b2 == nil and self.currentIdx > 0 and self.total > 0 and (b1 == 0x07 or b1 == 0x14) then
@@ -260,7 +272,7 @@ function CmdLine:onChanged()
 
     -- 10 ms is sufficient to identify whether the user is typing in command line mode or
     -- emitting key sequences from a key mapping
-    if deltaTime and deltaTime < 1e7 then
+    if deltaTime and deltaTime < 1e7 and not self:typeUpDown() then
         self.debouncedSearch()
         if self.type ~= ':' and isVisualArea then
             local cursor = api.nvim_win_get_cursor(0)
