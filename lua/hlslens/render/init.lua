@@ -140,6 +140,9 @@ function Render:createEvents()
 end
 
 local function enoughSizeForVirt(winid, lnum, text, lineWidth)
+    if utils.foldClosed(winid, lnum) > 0 then
+        return true
+    end
     local endVcol = utils.vcol(winid, {lnum, '$'}) - 1
     local remainingVcol
     if vim.wo[winid].wrap then
@@ -218,18 +221,18 @@ function Render.setVirt(bufnr, row, col, chunks, nearest)
             if winid == -1 then
                 return
             end
-            local gutterSize = utils.textoff(api.nvim_get_current_win())
-            local lineWidth = api.nvim_win_get_width(winid) - gutterSize
+            local textOff = utils.textOff(winid)
+            local lineWidth = api.nvim_win_get_width(winid) - textOff
             local text = chunksToText(chunks)
             local pos = {exLnum, exCol}
             if when == 'always' then
-                floatwin:updateFloatWin(winid, pos, chunks, text, lineWidth, gutterSize)
+                floatwin:updateFloatWin(winid, pos, chunks, text, lineWidth, textOff)
             else
                 if enoughSizeForVirt(winid, exLnum, text, lineWidth) then
                     extmark:setVirtText(bufnr, row, chunks)
                     floatwin:close()
                 else
-                    floatwin:updateFloatWin(winid, pos, chunks, text, lineWidth, gutterSize)
+                    floatwin:updateFloatWin(winid, pos, chunks, text, lineWidth, textOff)
                 end
             end
         end

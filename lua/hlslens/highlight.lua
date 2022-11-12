@@ -11,14 +11,14 @@ local initialized
 
 local hlBlendGroups
 
-local function hlAttrs(hlgroup)
-    vim.validate({hlgroup = {hlgroup, 'string'}})
+local function hlAttrs(hlGroup)
+    vim.validate({hlGroup = {hlGroup, 'string'}})
     local attrTbl = {
         'bold', 'standout', 'underline', 'undercurl', 'italic', 'reverse', 'strikethrough'
     }
     local t = {}
     local hlToTbl = function(gui)
-        local ok, hl = pcall(api.nvim_get_hl_by_name, hlgroup, gui)
+        local ok, hl = pcall(api.nvim_get_hl_by_name, hlGroup, gui)
         if not ok then
             return
         end
@@ -52,21 +52,21 @@ local function resetHighlightGroup()
     ]])
 
     hlBlendGroups = setmetatable({Ignore = 'Ignore'}, {
-        __index = function(tbl, hlgroup)
+        __index = function(tbl, hlGroup)
             local newHlGroup
             if vim.o.termguicolors then
-                newHlGroup = 'HlSearchBlend_' .. hlgroup
+                newHlGroup = 'HlSearchBlend_' .. hlGroup
                 local hlCmdTbl = {'hi ' .. newHlGroup, 'blend=0'}
-                for k, v in pairs(hlAttrs(hlgroup)) do
+                for k, v in pairs(hlAttrs(hlGroup)) do
                     table.insert(hlCmdTbl, ('%s=%s'):format(k, type(v) == 'table' and
                         table.concat(v, ',') or v))
                 end
                 cmd(table.concat(hlCmdTbl, ' '))
             else
-                newHlGroup = hlgroup
+                newHlGroup = hlGroup
             end
-            rawset(tbl, hlgroup, newHlGroup)
-            return rawget(tbl, hlgroup)
+            rawset(tbl, hlGroup, newHlGroup)
+            return rawget(tbl, hlGroup)
         end
     })
 end

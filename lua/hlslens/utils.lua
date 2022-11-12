@@ -71,7 +71,15 @@ end
 ---
 ---@param winid number
 ---@return number
-function M.textoff(winid)
+function M.lineWidth(winid)
+    local textOff = M.textOff(winid)
+    return api.nvim_win_get_width(winid) - textOff
+end
+
+---
+---@param winid number
+---@return number
+function M.textOff(winid)
     vim.validate({winid = {winid, 'number'}})
     return M.getWinInfo(winid).textoff
 end
@@ -92,7 +100,9 @@ end
 ---@param pos number[]
 ---@return number
 function M.vcol(winid, pos)
-    local vcol = fn.virtcol(pos)
+    local vcol = M.winCall(winid, function()
+        return fn.virtcol(pos)
+    end)
     if not vim.wo[winid].wrap then
         vcol = vcol - M.winCall(winid, fn.winsaveview).leftcol
     end
@@ -110,14 +120,14 @@ function M.foldClosed(winid, lnum)
 end
 
 ---
----@param hlgroup string
+---@param hlGroup string
 ---@param plist table
 ---@param prior? number
 ---@param winid? number
 ---@return number[]
-function M.matchAddPos(hlgroup, plist, prior, winid)
+function M.matchAddPos(hlGroup, plist, prior, winid)
     vim.validate({
-        hlgroup = {hlgroup, 'string'},
+        hlGroup = {hlGroup, 'string'},
         plist = {plist, 'table'},
         prior = {prior, 'number', true},
         winid = {winid, 'number'}
@@ -129,12 +139,12 @@ function M.matchAddPos(hlgroup, plist, prior, winid)
     for i, p in ipairs(plist) do
         table.insert(l, p)
         if i % 8 == 0 then
-            table.insert(ids, fn.matchaddpos(hlgroup, l, prior, -1, {window = winid}))
+            table.insert(ids, fn.matchaddpos(hlGroup, l, prior, -1, {window = winid}))
             l = {}
         end
     end
     if #l > 0 then
-        table.insert(ids, fn.matchaddpos(hlgroup, l, prior, -1, {window = winid}))
+        table.insert(ids, fn.matchaddpos(hlGroup, l, prior, -1, {window = winid}))
     end
     return ids
 end
