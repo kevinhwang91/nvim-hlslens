@@ -265,8 +265,8 @@ vim.api.nvim_set_keymap('x', 'g#', [[<Plug>(asterisk-gz#)<Cmd>lua require('hlsle
 
 #### [nvim-ufo](https://github.com/kevinhwang91/nvim-ufo)
 
-The lens has adapted to the folds of nvim-ufo, still need remap `n` and `N` actioin if you want to
-peek folded lines.
+The lens has been adapted to the folds of nvim-ufo, still need remap `n` and `N` actioin if you want
+to peek at folded lines.
 
 ```lua
 -- packer
