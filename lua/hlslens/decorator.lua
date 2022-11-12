@@ -25,8 +25,10 @@ local function onWin(name, winid, bufnr, topRow, botRow)
     local winWidth = api.nvim_win_get_width(winid)
     if not (bufnr == self.bufnr and topRow == self.topRow and botRow == self.botRow and
         winWidth == self.winWidth) then
-        -- event:emit('RegionChanged', bufnr, winid, topRow, botRow, winWidth)
+        -- if window contained empty lines at the bottom, like scrolled up near the last line,
+        -- closing fold may make topRow == self.topRow and botRow == self.botRow.
         event:emit('RegionChanged')
+        -- event:emit('RegionChanged', bufnr, winid, topRow, botRow, winWidth)
     end
     self.bufnr, self.topRow, self.botRow, self.winWidth = bufnr, topRow, botRow, winWidth
     return false

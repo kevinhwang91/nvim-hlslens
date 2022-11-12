@@ -105,15 +105,15 @@ function Position:nearestIndex(curPos, curFoldedLnum, topl, botl)
 
     local loIdxLnum = self.sList[loIdx][1]
     local hiIdxLnum = self.sList[hiIdx][1]
+    if curFoldedLnum > 0 and curFoldedLnum == fn.foldclosed(loIdxLnum) then
+        return loIdx, 0
+    end
     local foldedLnum = fn.foldclosed(hiIdxLnum)
     if foldedLnum > 0 then
         hiIdxLnum = foldedLnum
         if hiIdxLnum == curFoldedLnum then
             return hiIdx, 0
         end
-    end
-    if curFoldedLnum > 0 and curFoldedLnum == fn.foldclosed(loIdxLnum) then
-        return loIdx, 0
     end
     local wv = fn.winsaveview()
     local loWinLine, hiWinLine = 0, 0

@@ -14,17 +14,19 @@ instances.
   - [Installation](#installation)
   - [Minimal configuration](#minimal-configuration)
   - [Usage](#usage)
-    - [3 ways to start hlslens](#3-ways-to-start-hlslens)
+    - [Start hlslens](#start-hlslens)
     - [Stop hlslens](#stop-hlslens)
 - [Documentation](#documentation)
   - [Setup and description](#setup-and-description)
   - [Highlight](#highlight)
   - [Commands](#commands)
+  - [API](#api)
 - [Advanced configuration](#advanced-configuration)
   - [Customize configuration](#customize-configuration)
   - [Customize virtual text](#customize-virtual-text)
   - [Integrate with other plugins](#integrate-with-other-plugins)
     - [vim-asterisk](https://github.com/haya14busa/vim-asterisk)
+    - [nvim-ufo](https://github.com/kevinhwang91/nvim-ufo)
     - [vim-visual-multi](https://github.com/mg979/vim-visual-multi)
 - [Feedback](#feedback)
 - [License](#license)
@@ -37,13 +39,14 @@ instances.
 - Display search result for the current matched instance while searching
 - Display search result for some built-in commands that support incsearch (need Neovim 0.8.0)
 
-> Need `vim.api.nvim_parse_cmd` to pick up built-in commands in command line mode.
+> Need `vim.api.nvim_parse_cmd` to parse built-in commands if incsearch is enabled.
 
 ## Quickstart
 
 ### Requirements
 
 - [Neovim](https://github.com/neovim/neovim) 0.61 or later
+- [nvim-ufo](https://github.com/kevinhwang91/nvim-ufo) (optional)
 
 ### Installation
 
@@ -76,7 +79,7 @@ vim.api.nvim_set_keymap('n', '<Leader>l', ':noh<CR>', kopts)
 
 ### Usage
 
-After using [Minimal configuration](#Minimal-configuration):
+After using [Minimal configuration](#minimal-configuration):
 
 Hlslens will add virtual text at the end of the line if the room is enough for virtual text,
 otherwise, add a floating window to overlay the statusline to display lens.
@@ -84,13 +87,10 @@ otherwise, add a floating window to overlay the statusline to display lens.
 You can glance at the result provided by lens while searching when `incsearch` is on. Hlslens also
 supports `<C-g>` and `<C-t>` to move to the next and previous match.
 
-#### 3 ways to start hlslens
+#### Start hlslens
 
-1. Press `/` or `?` to search text, `/s` and `/e` offsets are supported
-2. Press `n` or `N` to jump to the instance matched by last pattern
-3. Press `*`, `#`, `g*` or `g#` to search word nearest to the cursor
-
-> run ex command :help search-commands for more information.
+1. Press `/` or `?` to search text, `/s` and `/e` offsets are supported;
+2. Invoke API `require('hlslens').start()`;
 
 #### Stop hlslens
 
@@ -98,6 +98,7 @@ Hlslens will observe whether `nohlsearch` command is accepted.
 
 1. Run ex command `nohlsearch`
 2. Map key to `:nohlsearch`, make sure that to use `:` instead of `<Cmd>`
+3. Invoke API `require('hlslens').stop()`;
 
 ## Documentation
 
@@ -176,6 +177,10 @@ hi default link HlSearchFloat IncSearch
 - `HlSearchLensEnable`: Enable nvim-hlslens
 - `HlSearchLensDisable`: Disable nvim-hlslens
 
+### API
+
+[hlslens.lua](./lua/hlslens.lua)
+
 ## Advanced configuration
 
 ### Customize configuration
@@ -186,6 +191,17 @@ require('hlslens').setup({
     nearest_only = true,
     nearest_float_when = 'always'
 })
+
+-- run `:nohlsearch` and export results to quickfix
+-- if Neovim is 0.8.0 before, remap yourself.
+vim.keymap.set({'n', 'x'}, '<Leader>L', function()
+    vim.schedule(function()
+        if require('hlslens').exportLastSearchToQuickfix() then
+            vim.cmd('cw')
+        end
+    end)
+    return ':noh<CR>'
+end, {expr = true})
 ```
 
 <https://user-images.githubusercontent.com/17562139/144655283-f5e3cf34-6c14-464d-9e09-6f57140c0dda.mp4>
@@ -249,22 +265,15 @@ vim.api.nvim_set_keymap('x', 'g#', [[<Plug>(asterisk-gz#)<Cmd>lua require('hlsle
 
 #### [nvim-ufo](https://github.com/kevinhwang91/nvim-ufo)
 
+The lens has adapted to the folds of nvim-ufo, still need remap `n` and `N` actioin if you want to
+peek folded lines.
+
 ```lua
 -- packer
 use {'kevinhwang91/nvim-ufo', requires = 'kevinhwang91/promise-async'}
 
--- simply use a global function to demo
-function _G.nN(c)
-    local ok, msg = pcall(vim.cmd, 'norm!' .. vim.v.count1 .. c)
-    if not ok then
-        vim.api.nvim_echo({{msg:match(':(.*)$'), 'ErrorMsg'}}, false, {})
-        return
-    end
-    require('hlslens').start()
-    require('ufo').peekFoldedLinesUnderCursor()
-end
-vim.api.nvim_set_keymap('n', 'n', '<Cmd>lua _G.nN("n")<CR>', {})
-vim.api.nvim_set_keymap('n', 'N', '<Cmd>lua _G.nN("N")<CR>', {})
+vim.api.nvim_set_keymap('n', 'n', [[<Cmd>lua require('hlslens').nNPeekWithUFO('n')<CR>]], {})
+vim.api.nvim_set_keymap('n', 'N', [[<Cmd>lua require('hlslens').nNPeekWithUFO('N')<CR>]], {})
 ```
 
 #### [vim-visual-multi](https://github.com/mg979/vim-visual-multi)

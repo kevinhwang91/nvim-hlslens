@@ -52,6 +52,14 @@ function M.exportLastSearchToQuickfix(isLocation)
     return require('hlslens.main').exportToQuickfix(isLocation)
 end
 
+---Wrap 'n' and 'N' actions with nvim-ufo's peekFoldedLinesUnderCursor API, and start to render
+---@param char string|'n'|'N'
+---@vararg any parameters of `peekFoldedLinesUnderCursor` API for nvim-ufo
+---@return boolean ret return true if enabled, otherwise return false
+function M.nNPeekWithUFO(char, ...)
+    return require('hlslens.ext.ufo'):nN(char, ...)
+end
+
 function M.setup(opts, warnFlag)
     if not opts and warnFlag then
         vim.schedule(function()
