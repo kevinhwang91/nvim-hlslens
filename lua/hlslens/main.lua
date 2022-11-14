@@ -8,7 +8,6 @@ local render = require('hlslens.render')
 local position = require('hlslens.position')
 local highlight = require('hlslens.highlight')
 local disposable = require('hlslens.lib.disposable')
-local config = require('hlslens.config')
 
 local enabled = false
 
@@ -53,9 +52,9 @@ function M.enable()
     table.insert(disposables, position:initialize())
     table.insert(disposables, render:initialize(ns))
     table.insert(disposables, cmdl:initialize(ns))
-    local ufo = pcall(require, 'ufo')
-    if ufo then
-        table.insert(disposables, require('hlslens.ext.ufo'):initialize(ufo))
+    local ok, res = pcall(require, 'ufo')
+    if ok then
+        table.insert(disposables, require('hlslens.ext.ufo'):initialize(res))
     end
 
     if vim.v.hlsearch == 1 and fn.getreg('/') ~= '' then

@@ -418,6 +418,7 @@ function Render:initialize(namespace)
         self.initialized = false
         self.throttledRefresh:cancel()
         self.throttledRefresh = nil
+        cmd('aug! HlSearchLensRender')
     end))
     table.insert(self.disposables, extmark:initialize(namespace, config.virt_priority))
     table.insert(self.disposables, floatwin:initialize(config.float_shadow_blend))

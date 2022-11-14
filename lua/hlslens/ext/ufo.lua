@@ -2,12 +2,19 @@ local api = vim.api
 local fn = vim.fn
 local cmd = vim.cmd
 
-local render = require('hlslens.render')
-local utils  = require('hlslens.utils')
-local event  = require('hlslens.lib.event')
+local render     = require('hlslens.render')
+local utils      = require('hlslens.utils')
+local event      = require('hlslens.lib.event')
+local disposable = require('hlslens.lib.disposable')
 
 ---@class HlslensExternalUfo
-local Ufo = {}
+---@field winid number
+---@field module? table
+---@field initialized boolean
+---@field disposables HlslensDisposable[]
+local Ufo = {
+    disposables = {}
+}
 
 function Ufo:listVirtTextInfos(bufnr, row, endRow)
     local marks = api.nvim_buf_get_extmarks(bufnr, self.ns, {row, 0}, {endRow, -1},
@@ -42,14 +49,23 @@ end
 
 function Ufo:nN(char, ...)
     vim.validate({char = {char, function(c) return c == 'n' or c == 'N' end, [['n' or 'N']]}})
-    assert(self.module, [[Can't find 'ufo' module in the runtime path.]])
     local ok, msg = pcall(cmd, 'norm!' .. vim.v.count1 .. char)
     if not ok then
         ---@diagnostic disable-next-line: need-check-nil
         api.nvim_echo({{msg:match(':(.*)$'), 'ErrorMsg'}}, false, {})
         return
     end
-    self.winid = require('ufo').peekFoldedLinesUnderCursor(...)
+    if self.module then
+        self.winid = self.module.peekFoldedLinesUnderCursor(...)
+        if utils.isWinValid(self.winid) then
+            local bufnr = api.nvim_win_get_buf(self.winid)
+            cmd('aug HlSearchLensUfoPreview')
+            cmd('au! * <buffer>')
+            cmd(([[au WinClosed <buffer=%d> ++once lua require('hlslens.lib.event'):%s]])
+                :format(bufnr, ([[emit('UfoPreviewClosed', %d)]]):format(bufnr)))
+            cmd('aug END')
+        end
+    end
     return require('hlslens').start()
 end
 
@@ -59,17 +75,16 @@ function Ufo:peek(winid, sList, eList, idx)
     if self.winid ~= winid and utils.isWinValid(self.winid) then
         local sp = calibratePos(sList[idx], foldedLnum)
         local ep = calibratePos(eList[idx], foldedLnum)
-        local previewBufnr = api.nvim_win_get_buf(self.winid)
-        render.clear(true, previewBufnr, true)
+        local bufnr = api.nvim_win_get_buf(self.winid)
+        render.clear(true, bufnr, true)
         render.addWinHighlight(self.winid, sp, ep)
-        render:addNearestLens(previewBufnr, sp, idx, #sList)
+        render:addNearestLens(bufnr, sp, idx, #sList)
     end
 end
 
 function Ufo:dispose()
-    self.initialized = false
-    self.winid = -1
-    self.module = nil
+    disposable.disposeAll(self.disposables)
+    self.disposables = {}
 end
 
 function Ufo:initialize(module)
@@ -79,7 +94,13 @@ function Ufo:initialize(module)
     self.module = module
     self.ns = api.nvim_create_namespace('ufo')
     self.winid = -1
-    self.initialized = true
+    local disposables = {}
+    table.insert(disposables, disposable:create(function()
+        self.winid = -1
+        self.initialized = false
+        self.module = nil
+        cmd('sil! aug! HlSearchLensUfoPreview')
+    end))
     event:on('LensUpdated', function(winid, pattern, changedtick, sList, eList, idx, rIdx, region)
         if #sList == 0 then
             return
@@ -116,7 +137,11 @@ function Ufo:initialize(module)
                 })
             end
         end
-    end)
+    end, disposables)
+    event:on('UfoPreviewClosed', function(bufnr)
+        render.clear(true, bufnr, true)
+    end, disposables)
+    self.disposables = disposables
     return self
 end
 
