@@ -38,6 +38,10 @@ function FloatWin.getConfig(winid)
 end
 
 local function borderHasBottomLine(border)
+    if border == nil then
+        return false
+    end
+
     local s = border[6]
     if type(s) == 'string' then
         return s ~= ''
