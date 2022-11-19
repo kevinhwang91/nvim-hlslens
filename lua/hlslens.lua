@@ -54,8 +54,9 @@ end
 
 ---Wrap 'n' and 'N' actions with nvim-ufo's peekFoldedLinesUnderCursor API, and start to render
 ---@param char string|'n'|'N'
----@vararg any parameters of `peekFoldedLinesUnderCursor` API for nvim-ufo
+---@param ... any parameters of `peekFoldedLinesUnderCursor` API for nvim-ufo
 ---@return boolean ret return true if enabled, otherwise return false
+---@return number winid
 function M.nNPeekWithUFO(char, ...)
     return require('hlslens.ext.ufo'):nN(char, ...)
 end
