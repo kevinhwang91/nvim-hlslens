@@ -105,7 +105,7 @@ local function refreshCurrentBuf()
     local sList, eList = pos.sList, pos.eList
     self.addWinHighlight(0, sList[idx], eList[idx])
     self:doLens(bufnr, sList, not pos.offsetPos, idx, rIdx, {topLine, botLine}, {fs, fe})
-    event:emit('LensUpdated', winid, pos.pattern, pos.changedtick, sList, eList, idx, rIdx,
+    event:emit('LensUpdated', bufnr, pos.pattern, pos.changedtick, sList, eList, idx, rIdx,
                {topLine, botLine})
 end
 

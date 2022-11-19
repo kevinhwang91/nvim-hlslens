@@ -47,16 +47,22 @@ local function calibratePos(pos, offsetLnum)
     return {pos[1] - offsetLnum + 1, pos[2]}
 end
 
+---
+---@param char string|'n'|'N'
+---@param ... any
+---@return boolean, number
 function Ufo:nN(char, ...)
     vim.validate({char = {char, function(c) return c == 'n' or c == 'N' end, [['n' or 'N']]}})
+    local winid
     local ok, msg = pcall(cmd, 'norm!' .. vim.v.count1 .. char)
     if not ok then
         ---@diagnostic disable-next-line: need-check-nil
         api.nvim_echo({{msg:match(':(.*)$'), 'ErrorMsg'}}, false, {})
-        return
+        return ok, winid
     end
     if self.module then
-        self.winid = self.module.peekFoldedLinesUnderCursor(...)
+        winid = self.module.peekFoldedLinesUnderCursor(...)
+        self.winid = winid
         if utils.isWinValid(self.winid) then
             local bufnr = api.nvim_win_get_buf(self.winid)
             cmd('aug HlSearchLensUfoPreview')
@@ -66,19 +72,23 @@ function Ufo:nN(char, ...)
             cmd('aug END')
         end
     end
-    return require('hlslens').start()
+    return require('hlslens').start(), winid
 end
 
-function Ufo:peek(winid, sList, eList, idx)
+function Ufo:decoratePeekWindow(winid, sList, eList, idx)
     local pos = sList[idx]
     local foldedLnum = utils.foldClosed(winid, pos[1])
-    if self.winid ~= winid and utils.isWinValid(self.winid) then
-        local sp = calibratePos(sList[idx], foldedLnum)
-        local ep = calibratePos(eList[idx], foldedLnum)
-        local bufnr = api.nvim_win_get_buf(self.winid)
-        render.clear(true, bufnr, true)
-        render.addWinHighlight(self.winid, sp, ep)
-        render:addNearestLens(bufnr, sp, idx, #sList)
+    if self.winid ~= winid then
+        vim.schedule(function()
+            if utils.isWinValid(self.winid) then
+                local sp = calibratePos(sList[idx], foldedLnum)
+                local ep = calibratePos(eList[idx], foldedLnum)
+                local bufnr = api.nvim_win_get_buf(self.winid)
+                render.clear(true, bufnr, true)
+                render.addWinHighlight(self.winid, sp, ep)
+                render:addNearestLens(bufnr, sp, idx, #sList)
+            end
+        end)
     end
 end
 
@@ -101,12 +111,12 @@ function Ufo:initialize(module)
         self.module = nil
         cmd('sil! aug! HlSearchLensUfoPreview')
     end))
-    event:on('LensUpdated', function(winid, pattern, changedtick, sList, eList, idx, rIdx, region)
-        if #sList == 0 then
+    event:on('LensUpdated', function(bufnr, pattern, changedtick, sList, eList, idx, rIdx, region)
+        local winid = fn.bufwinid(bufnr)
+        if #sList == 0 or not utils.isWinValid(winid) then
             return
         end
-        self:peek(winid, sList, eList, idx)
-        local bufnr = api.nvim_win_get_buf(winid)
+        self:decoratePeekWindow(winid, sList, eList, idx)
         local lnum, endLnum = region[1], region[2]
         local virtTextInfos = self:listVirtTextInfos(bufnr, lnum - 1, endLnum - 1)
         if #virtTextInfos == 0 then
@@ -139,6 +149,7 @@ function Ufo:initialize(module)
         end
     end, disposables)
     event:on('UfoPreviewClosed', function(bufnr)
+        self.winid = -1
         render.clear(true, bufnr, true)
     end, disposables)
     self.disposables = disposables
