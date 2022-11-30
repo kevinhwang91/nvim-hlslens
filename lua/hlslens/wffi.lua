@@ -79,15 +79,33 @@ local function init()
             linenr_T lnum;
             colnr_T col;
         } lpos_T;
+    ]])
+    if utils.has09() then
+        -- Add rmm_matchcol field to regmmatch_T
+        -- https://github.com/neovim/neovim/commit/7e9981d246a9d46f19dc6283664c229ae2efe727
+        ffi.cdef([[
+            typedef struct {
+                regprog_T *regprog;
+                lpos_T startpos[10];
+                lpos_T endpos[10];
+                colnr_T rmm_matchcol;
+                int rmm_ic;
+                colnr_T rmm_maxcol;
+            } regmmatch_T;
+        ]])
+    else
+        ffi.cdef([[
+            typedef struct {
+                regprog_T *regprog;
+                lpos_T startpos[10];
+                lpos_T endpos[10];
+                int rmm_ic;
+                colnr_T rmm_maxcol;
+            } regmmatch_T;
+        ]])
+    end
 
-        typedef struct {
-            regprog_T *regprog;
-            lpos_T startpos[10];
-            lpos_T endpos[10];
-            int rmm_ic;
-            colnr_T rmm_maxcol;
-        } regmmatch_T;
-
+    ffi.cdef([[
         typedef struct {} Error;
         typedef struct window_S win_T;
         typedef struct file_buffer buf_T;
