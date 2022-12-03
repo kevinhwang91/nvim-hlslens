@@ -79,8 +79,9 @@ function Ufo:decoratePeekWindow(winid, sList, eList, idx)
     local pos = sList[idx]
     local foldedLnum = utils.foldClosed(winid, pos[1])
     if self.winid ~= winid then
+        local w = self.winid
         vim.schedule(function()
-            if utils.isWinValid(self.winid) then
+            if self.winid == w and utils.isWinValid(self.winid) then
                 local sp = calibratePos(sList[idx], foldedLnum)
                 local ep = calibratePos(eList[idx], foldedLnum)
                 local bufnr = api.nvim_win_get_buf(self.winid)
