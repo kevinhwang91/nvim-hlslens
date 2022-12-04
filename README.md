@@ -74,7 +74,7 @@ vim.api.nvim_set_keymap('n', '#', [[#<Cmd>lua require('hlslens').start()<CR>]], 
 vim.api.nvim_set_keymap('n', 'g*', [[g*<Cmd>lua require('hlslens').start()<CR>]], kopts)
 vim.api.nvim_set_keymap('n', 'g#', [[g#<Cmd>lua require('hlslens').start()<CR>]], kopts)
 
-vim.api.nvim_set_keymap('n', '<Leader>l', ':noh<CR>', kopts)
+vim.api.nvim_set_keymap('n', '<Leader>l', '<Cmd>noh<CR>', kopts)
 ```
 
 ### Usage
@@ -94,10 +94,8 @@ supports `<C-g>` and `<C-t>` to move to the next and previous match.
 
 #### Stop hlslens
 
-Hlslens will observe whether `nohlsearch` command is accepted.
-
-1. Run ex command `nohlsearch`
-2. Map key to `:nohlsearch`, make sure that to use `:` instead of `<Cmd>`
+1. Run ex command `nohlsearch`;
+2. Map key to `:nohlsearch`;
 3. Invoke API `require('hlslens').stop()`;
 
 ## Documentation

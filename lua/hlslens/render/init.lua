@@ -20,9 +20,11 @@ local DUMMY_POS
 ---@alias HlslensRenderState
 ---| STOP #1
 ---| START #2
+---| PENDING #3
 ---@diagnostic enable: undefined-doc-name
 local STOP = 1
 local START = 2
+local PENDING = 3
 
 ---@class HlslensRender
 ---@field initialized boolean
@@ -61,17 +63,21 @@ function Render:doNohAndStop(defer)
     end
 end
 
-local function refreshCurrentBuf()
-    local self = Render
-    if vim.v.hlsearch == 0 then
+function Render:mayStop()
+    local status = self.status
+    if status == START then
+        self.status = PENDING
         vim.schedule(function()
+            self.status = status
             if vim.v.hlsearch == 0 then
                 self:stop()
             end
         end)
-        return
     end
+end
 
+local function refreshCurrentBuf()
+    local self = Render
     local bufnr = api.nvim_get_current_buf()
     local pos = position:compute(bufnr)
     if not pos then
@@ -361,12 +367,15 @@ end
 
 function Render:start(force)
     if vim.o.hlsearch then
-        if self.status ~= START then
+        if self.status == STOP then
             self.status = START
             table.insert(self.stopDisposes, decorator:initialize(self.ns))
             table.insert(self.stopDisposes, self:createEvents())
             event:on('RegionChanged', function()
                 self:refresh(true)
+            end, self.stopDisposes)
+            event:on('HlSearchCleared', function()
+                self:mayStop()
             end, self.stopDisposes)
             table.insert(self.stopDisposes, disposable:create(function()
                 position:resetPool()
@@ -409,7 +418,7 @@ function Render:initialize(namespace)
     self.nearestFloatWhen = config.nearest_float_when
     self.calmDown = config.calm_down
     self.throttledRefresh = throttle(function()
-        if self.throttledRefresh then
+        if self.status == START and self.throttledRefresh then
             refreshCurrentBuf()
         end
         self.force = nil

@@ -1,5 +1,5 @@
-local disposable = require 'hlslens.lib.disposable'
-local event      = require 'hlslens.lib.event'
+local disposable = require('hlslens.lib.disposable')
+local event      = require('hlslens.lib.event')
 local api        = vim.api
 
 local Decorator = {
@@ -34,6 +34,13 @@ local function onWin(name, winid, bufnr, topRow, botRow)
     return false
 end
 
+---@diagnostic disable-next-line: unused-local
+local function onEnd(name)
+    if vim.v.hlsearch == 0 then
+        event:emit('HlSearchCleared')
+    end
+end
+
 function Decorator:initialize(namespace)
     if self.initialized then
         return self
@@ -41,7 +48,8 @@ function Decorator:initialize(namespace)
     self.ns = namespace
     api.nvim_set_decoration_provider(self.ns, {
         on_start = onStart,
-        on_win = onWin
+        on_win = onWin,
+        on_end = onEnd
     })
     table.insert(self.disposables, disposable:create(function()
         api.nvim_set_decoration_provider(self.ns, {})

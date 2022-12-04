@@ -289,16 +289,6 @@ function CmdLine:onChanged()
     self:toggleHlSearch(not self.parser:isEmptyVisualAreaPattern())
 end
 
-local function validNoHlSearchSimply()
-    local cmdline = vim.trim(fn.getcmdline())
-    for _, cl in ipairs(vim.split(cmdline, '|')) do
-        if #cl > 2 and ('nohlsearch'):find(vim.trim(cl), 1, true) then
-            return true
-        end
-    end
-    return false
-end
-
 function CmdLine:dispose()
     disposable.disposeAll(self.disposables)
     self.disposables = {}
@@ -329,9 +319,6 @@ function CmdLine:initialize(ns)
     event:on('CmdlineLeave', function(e)
         local typ, abort = e.cmdtype, e.abort
         self:detach(typ, abort)
-        if typ == ':' and not abort and validNoHlSearchSimply() then
-            render:doNohAndStop()
-        end
         render:start(true)
     end, self.disposables)
     event:on('CmdlineChanged', function()
