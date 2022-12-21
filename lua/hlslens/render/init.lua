@@ -68,7 +68,9 @@ function Render:mayStop()
     if status == START then
         self.status = PENDING
         vim.schedule(function()
-            self.status = status
+            if self.status == PENDING then
+                self.status = status
+            end
             if vim.v.hlsearch == 0 then
                 self:stop()
             end
@@ -424,6 +426,7 @@ function Render:initialize(namespace)
         self.force = nil
     end, 150)
     table.insert(self.disposables, disposable:create(function()
+        self.status = STOP
         self.initialized = false
         self.throttledRefresh:cancel()
         self.throttledRefresh = nil
