@@ -276,7 +276,7 @@ local function nN(char)
     if ok and winid then
         -- Safe to override buffer scope keymaps remapped by ufo,
         -- ufo will restore previous buffer keymaps before closing preview window
-        -- Type <CR> will switch to preview window and fire `tarce` action
+        -- Type <CR> will switch to preview window and fire `trace` action
         vim.keymap.set('n', '<CR>', function()
             local keyCodes = api.nvim_replace_termcodes('<Tab><CR>', true, false, true)
             api.nvim_feedkeys(keyCodes, 'im', false)
