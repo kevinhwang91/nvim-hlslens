@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.0.0] - 2022-12-10
+
+### Features
+
+#### Cmdline
+
+- Support incsearch for `smagic` and `snomagic`
+- Highlight selection for `\%V`
+
+#### API
+
+- Add qf API `exportLastSearchToQuickfix` [#49]
+
+#### External
+
+- Support nvim-ufo [#43]
+
+### Bug Fixes
+
+#### WFFI
+
+- Add `rmm_matchcol` field to `regmmatch_T` in nightly
+
+#### Miscellaneous
+
+- Listen `v:hlsearch` value, `:noh<CR>` remapping is not necessary
+- [**breaking**] Bump Neovim to 0.6.1
+
+### Performance
+
+- Use throttle and debounce to improve performance
+
 ## [0.2.0] - 2022-09-11
 
 Release the stable version, will rework some tasks.
