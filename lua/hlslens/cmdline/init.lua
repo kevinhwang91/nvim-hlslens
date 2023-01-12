@@ -24,6 +24,7 @@ local disposable = require('hlslens.lib.disposable')
 ---@field parser HlslensCmdLineParser
 ---@field isSubstitute boolean
 ---@field isVisualArea boolean
+---@field range? number[]
 ---@field searching boolean
 ---@field fold? HlslensCmdLineIncSearchFold
 ---@field debouncedSearch HlslensDebounce
@@ -72,9 +73,12 @@ end
 ---@param pattern string
 ---@return table|nil
 function CmdLine:searchRange(pattern)
-    local range
-    local flag = self.isSubstitute and 'c' or (self.type == '?' and 'b' or '')
+    if self.range and
+        (self.searchStart[1] < self.range[1] or self.searchStart[2] > self.range[2]) then
+        return
+    end
     api.nvim_win_set_cursor(0, self.searchStart)
+    local flag = self.isSubstitute and 'c' or (self.type == '?' and 'b' or '')
     local pos = utils.searchPosSafely(pattern, flag)
     if utils.comparePosition(pos, {0, 0}) == 0 then
         return
@@ -85,6 +89,7 @@ function CmdLine:searchRange(pattern)
         timeout = 100,
         pattern = pattern
     })
+    local range
     if ok and res.incomplete == 0 and res.total and res.total > 0 then
         self.currentIdx = res.current
         self.total = res.total
@@ -202,6 +207,7 @@ function CmdLine:didChange()
     end
     if self.parser.type == ':' then
         self.isSubstitute = self.parser:isSubstitute()
+        self.range = self.parser.range
         if self.isSubstitute then
             render.clear(true, 0, true)
         elseif not self.parser:patternChanged() then

@@ -8,6 +8,7 @@ local cmd = vim.cmd
 ---@field lastLine string
 ---@field name? string
 ---@field pattern? string
+---@field range? number[]
 ---@field lastPattern? string
 ---@field offset? string
 local CmdLineParser = {
@@ -84,7 +85,17 @@ function CmdLineParser:doParse()
         local ok, parsed = pcall(api.nvim_parse_cmd, self.line, {})
         if ok then
             if self.builtinCmds[parsed.cmd] then
-                self.name = parsed.cmd
+                self.name, self.range = parsed.cmd, parsed.range
+                if vim.tbl_isempty(self.range) then
+                    if self:isSubstitute() then
+                        local lnum = api.nvim_win_get_cursor(0)[1]
+                        self.range = {lnum, lnum}
+                    else
+                        self.range = {1, api.nvim_buf_line_count(0)}
+                    end
+                elseif #self.range == 1 then
+                    table.insert(self.range, self.range[1])
+                end
             end
             if #parsed.args == 0 or not self.name then
                 return false
