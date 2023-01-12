@@ -11,6 +11,7 @@ local cmd = vim.cmd
 ---@field range? number[]
 ---@field lastPattern? string
 ---@field offset? string
+---@field originCursor number[] (1, 0)-indexed position
 local CmdLineParser = {
     builtinCmds = {
         substitute = 1,
@@ -25,10 +26,11 @@ local CmdLineParser = {
     }
 }
 
-function CmdLineParser:new(typ)
+function CmdLineParser:new(typ, originCursor)
     local o = setmetatable({}, self)
     self.__index = self
     o.type = typ
+    o.originCursor = originCursor
     o.line = ''
     o.lastLine = ''
     o.pattern = nil
@@ -88,7 +90,7 @@ function CmdLineParser:doParse()
                 self.name, self.range = parsed.cmd, parsed.range
                 if vim.tbl_isempty(self.range) then
                     if self:isSubstitute() then
-                        local lnum = api.nvim_win_get_cursor(0)[1]
+                        local lnum = self.originCursor[1]
                         self.range = {lnum, lnum}
                     else
                         self.range = {1, api.nvim_buf_line_count(0)}

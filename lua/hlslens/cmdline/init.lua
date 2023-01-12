@@ -73,15 +73,20 @@ end
 ---@param pattern string
 ---@return table|nil
 function CmdLine:searchRange(pattern)
-    if self.range and
-        (self.searchStart[1] < self.range[1] or self.searchStart[2] > self.range[2]) then
-        return
-    end
     api.nvim_win_set_cursor(0, self.searchStart)
     local flag = self.isSubstitute and 'c' or (self.type == '?' and 'b' or '')
+    if self.range then
+        flag = flag .. 'n'
+    end
     local pos = utils.searchPosSafely(pattern, flag)
     if utils.comparePosition(pos, {0, 0}) == 0 then
         return
+    end
+    if self.range then
+        if pos[1] < self.range[1] or pos[1] > self.range[2] then
+            return
+        end
+        api.nvim_win_set_cursor(0, decPos(pos))
     end
     local ok, res = pcall(fn.searchcount, {
         recompute = true,
@@ -153,9 +158,9 @@ function CmdLine:attach(typ)
         end
     end
 
-    self.parser = parser:new(typ)
     self:resetState()
     local cursor = api.nvim_win_get_cursor(0)
+    self.parser = parser:new(typ, cursor)
     self.searchStart = cursor
     self.matchStart = cursor
     self.matchEnd = cursor
