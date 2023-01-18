@@ -163,7 +163,7 @@ hi default link HlSearchLens WildMenu
 hi default link HlSearchLensNear IncSearch
 ```
 
-1. HlSearchLensNear: highlight the nearest virtual text text for the floating window
+1. HlSearchLensNear: highlight the nearest virtual text for the floating window
 2. HlSearchLens: highlight virtual text except for the nearest one
 3. HlSearchNear: highlight the nearest matched instance
 
