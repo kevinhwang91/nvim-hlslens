@@ -161,13 +161,11 @@ supports `<C-g>` and `<C-t>` to move to the next and previous match.
 hi default link HlSearchNear IncSearch
 hi default link HlSearchLens WildMenu
 hi default link HlSearchLensNear IncSearch
-hi default link HlSearchFloat IncSearch
 ```
 
-1. HlSearchLensNear: highlight the nearest virtual text
+1. HlSearchLensNear: highlight the nearest virtual text text for the floating window
 2. HlSearchLens: highlight virtual text except for the nearest one
 3. HlSearchNear: highlight the nearest matched instance
-4. HlSearchFloat: highlight the nearest text for the floating window
 
 ### Commands
 

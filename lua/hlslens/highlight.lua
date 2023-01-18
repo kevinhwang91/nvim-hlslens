@@ -48,7 +48,6 @@ local function resetHighlightGroup()
         hi default link HlSearchNear IncSearch
         hi default link HlSearchLens WildMenu
         hi default link HlSearchLensNear IncSearch
-        hi default link HlSearchFloat IncSearch
     ]])
 
     hlBlendGroups = setmetatable({Ignore = 'Ignore'}, {
