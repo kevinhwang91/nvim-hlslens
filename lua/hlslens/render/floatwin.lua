@@ -108,6 +108,7 @@ function FloatWin:updateFloatWin(winid, pos, chunks, text, lineWidth, textOff)
     else
         self:open(winid, height, 0, width)
         vim.wo[self.winid].winbl = self.shadowBlend
+        vim.wo[self.winid].winhl = 'Normal:StatusLine'
         local padding = (' '):rep(math.min(floatCol, width - textWidth))
         table.insert(newChunks, {padding, ''})
     end
