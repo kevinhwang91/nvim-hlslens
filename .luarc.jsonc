@@ -11,7 +11,6 @@
 		"assign-type-mismatch"
 	],
 	"diagnostics.globals": [
-		"vim",
 		"jit",
 		"it",
 		"describe",
@@ -20,10 +19,14 @@
 		"setup",
 		"teardown"
 	],
+	"diagnostics.severity": {
+        "unused-local": "Hint",
+		"undefined-field": "Hint"
+	},
 	"runtime.version": "LuaJIT",
 	"type.castNumberToInteger": true,
 	"type.weakUnionCheck": true,
 	"workspace.library": [
-		"$VIM/site/pack/packer/start/emmylua-nvim"
+		"$VIM/runtime/lua"
 	]
 }

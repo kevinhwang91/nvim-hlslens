@@ -2,13 +2,14 @@ local api = vim.api
 local fn = vim.fn
 local cmd = vim.cmd
 
-local render     = require('hlslens.render')
-local utils      = require('hlslens.utils')
-local event      = require('hlslens.lib.event')
+local render = require('hlslens.render')
+local utils = require('hlslens.utils')
+local event = require('hlslens.lib.event')
 local disposable = require('hlslens.lib.disposable')
 
 ---@class HlslensExternalUfo
 ---@field winid number
+---@field auGroupId? number
 ---@field module? table
 ---@field initialized boolean
 ---@field disposables HlslensDisposable[]
@@ -17,8 +18,7 @@ local Ufo = {
 }
 
 function Ufo:listVirtTextInfos(bufnr, row, endRow)
-    local marks = api.nvim_buf_get_extmarks(bufnr, self.ns, {row, 0}, {endRow, -1},
-                                            {details = true})
+    local marks = api.nvim_buf_get_extmarks(bufnr, self.ns, {row, 0}, {endRow, -1}, {details = true})
     local res = {}
     local lastRow, lastEndRow = -1, -1
     for _, mark in ipairs(marks) do
@@ -26,8 +26,12 @@ function Ufo:listVirtTextInfos(bufnr, row, endRow)
         local sr, er = mark[2], details.end_row
         if sr and er and (sr < lastRow or er > lastEndRow) and
             details.virt_text_pos == 'win_col' and details.virt_text_win_col == 0 then
-            table.insert(res, {row = sr, endRow = er, priority = details.priority,
-                               virtText = details.virt_text})
+            table.insert(res, {
+                row = sr,
+                endRow = er,
+                priority = details.priority,
+                virtText = details.virt_text
+            })
             lastRow, lastEndRow = sr, er
         end
     end
@@ -65,11 +69,14 @@ function Ufo:nN(char, ...)
         self.winid = winid
         if utils.isWinValid(self.winid) then
             local bufnr = api.nvim_win_get_buf(self.winid)
-            cmd('aug HlSearchLensUfoPreview')
-            cmd('au! * <buffer>')
-            cmd(([[au WinClosed <buffer=%d> ++once lua require('hlslens.lib.event'):%s]])
-                :format(bufnr, ([[emit('UfoPreviewClosed', %d)]]):format(bufnr)))
-            cmd('aug END')
+            api.nvim_create_autocmd('WinClosed', {
+                group = self.auGroupId,
+                buffer = bufnr,
+                once = true,
+                callback = function(ev)
+                    event:emit('UfoPreviewClosed', ev.buf)
+                end
+            })
         end
     end
     return require('hlslens').start(), winid
@@ -105,12 +112,16 @@ function Ufo:initialize(module)
     self.module = module
     self.ns = api.nvim_create_namespace('ufo')
     self.winid = -1
+    self.auGroupId = api.nvim_create_augroup('HlSearchLensUfoPreview', {})
     local disposables = {}
     table.insert(disposables, disposable:create(function()
         self.winid = -1
         self.initialized = false
         self.module = nil
-        cmd('sil! aug! HlSearchLensUfoPreview')
+        if self.auGroupId then
+            api.nvim_del_augroup_by_id(self.auGroupId)
+            self.auGroupId = nil
+        end
     end))
     event:on('LensUpdated', function(bufnr, pattern, changedtick, sList, eList, idx, rIdx, region)
         local winid = fn.bufwinid(bufnr)

@@ -128,7 +128,7 @@ function Position:nearestIndex(curPos, curFoldedLnum, topl, botl)
     end
     fn.winrestview(wv)
     if hiWinLine > 0 and (loWinLine == 0 or
-        math.ceil((hiWinLine - loWinLine) / 2) - 1 < curWinLine - loWinLine) then
+            math.ceil((hiWinLine - loWinLine) / 2) - 1 < curWinLine - loWinLine) then
         relIdx = 1
         idx = idx + 1
     end

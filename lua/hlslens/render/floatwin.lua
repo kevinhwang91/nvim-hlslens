@@ -1,9 +1,9 @@
 local api = vim.api
 local fn = vim.fn
 
-local utils     = require('hlslens.utils')
+local utils = require('hlslens.utils')
 local highlight = require('hlslens.highlight')
-local extmark   = require('hlslens.render.extmark')
+local extmark = require('hlslens.render.extmark')
 
 ---@class HlslensRenderFloatWin
 ---@field initialized boolean
