@@ -45,7 +45,7 @@ instances.
 
 ### Requirements
 
-- [Neovim](https://github.com/neovim/neovim) 0.61 or later
+- [Neovim](https://github.com/neovim/neovim) 0.7.2 or later
 - [nvim-ufo](https://github.com/kevinhwang91/nvim-ufo) (optional)
 
 ### Installation
@@ -294,55 +294,39 @@ vim.keymap.set({'n', 'x'}, 'N', function() nN('N') end)
 -- packer
 use 'mg979/vim-visual-multi'
 
-vim.cmd([[
-    aug VMlens
-        au!
-        au User visual_multi_start lua require('vmlens').start()
-        au User visual_multi_exit lua require('vmlens').exit()
-    aug END
-]])
-```
-
-Add vmlens.lua under your lua path, for instance: `~/.config/nvim/lua/vmlens.lua`
-
-```lua
-local M = {}
 local hlslens = require('hlslens')
-local config
-local lensBak
+if hlslens then
+    local overrideLens = function(render, posList, nearest, idx, relIdx)
+        local _ = relIdx
+        local lnum, col = unpack(posList[idx])
 
-local overrideLens = function(render, posList, nearest, idx, relIdx)
-    local _ = relIdx
-    local lnum, col = unpack(posList[idx])
-
-    local text, chunks
-    if nearest then
-        text = ('[%d/%d]'):format(idx, #posList)
-        chunks = {{' ', 'Ignore'}, {text, 'VM_Extend'}}
-    else
-        text = ('[%d]'):format(idx)
-        chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
+        local text, chunks
+        if nearest then
+            text = ('[%d/%d]'):format(idx, #posList)
+            chunks = {{' ', 'Ignore'}, {text, 'VM_Extend'}}
+        else
+            text = ('[%d]'):format(idx)
+            chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
+        end
+        render.setVirt(0, lnum - 1, col - 1, chunks, nearest)
     end
-    render.setVirt(0, lnum - 1, col - 1, chunks, nearest)
+    local lensBak
+    local config = require('hlslens.config')
+    local gid = vim.api.nvim_create_augroup('VMlens', {})
+    vim.api.nvim_create_autocmd('User', {
+        pattern = {'visual_multi_start', 'visual_multi_exit'},
+        group = gid,
+        callback = function(ev)
+            if ev.match == 'visual_multi_start' then
+                lensBak = config.override_lens
+                config.override_lens = overrideLens
+            else
+                config.override_lens = lensBak
+            end
+            hlslens.start()
+        end
+    })
 end
-
-function M.start()
-    if hlslens then
-        config = require('hlslens.config')
-        lensBak = config.override_lens
-        config.override_lens = overrideLens
-        hlslens.start()
-    end
-end
-
-function M.exit()
-    if hlslens then
-        config.override_lens = lensBak
-        hlslens.start()
-    end
-end
-
-return M
 ```
 
 ## Feedback

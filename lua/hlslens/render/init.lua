@@ -2,13 +2,13 @@ local fn = vim.fn
 local api = vim.api
 local cmd = vim.cmd
 
-local utils      = require('hlslens.utils')
-local config     = require('hlslens.config')
+local utils = require('hlslens.utils')
+local config = require('hlslens.config')
 local disposable = require('hlslens.lib.disposable')
-local decorator  = require('hlslens.decorator')
-local throttle   = require('hlslens.lib.throttle')
-local position   = require('hlslens.position')
-local event      = require('hlslens.lib.event')
+local decorator = require('hlslens.decorator')
+local throttle = require('hlslens.lib.throttle')
+local position = require('hlslens.position')
+local event = require('hlslens.lib.event')
 
 local winhl = require('hlslens.render.winhl')
 local extmark = require('hlslens.render.extmark')
@@ -114,25 +114,16 @@ local function refreshCurrentBuf()
     self.addWinHighlight(0, sList[idx], eList[idx])
     self:doLens(bufnr, sList, not pos.offsetPos, idx, rIdx, {topLine, botLine}, {fs, fe})
     event:emit('LensUpdated', bufnr, pos.pattern, pos.changedtick, sList, eList, idx, rIdx,
-               {topLine, botLine})
+        {topLine, botLine})
 end
 
 function Render:createEvents()
     local dps = {}
-    cmd('aug HlSearchLensRender')
-    cmd([[
-        au CursorMoved * lua require('hlslens.lib.event'):emit('CursorMoved')
-        au TermEnter * lua require('hlslens.lib.event'):emit('TermEnter')
-    ]])
-    event:on('CursorMoved', self.throttledRefresh, dps)
-    event:on('TermEnter', function()
-        self.clear(true, 0, true)
-    end, dps)
+    local gid = api.nvim_create_augroup('HlSearchLensRender', {})
+    local events = {'CursorMoved', 'TermEnter'}
     if self.calmDown then
-        cmd([[
-            au TextChanged * lua require('hlslens.lib.event'):emit('TextChanged')
-            au TextChangedI * lua require('hlslens.lib.event'):emit('TextChangedI')
-        ]])
+        table.insert(events, 'TextChanged')
+        table.insert(events, 'TextChangedI')
         event:on('TextChanged', function()
             self:doNohAndStop(true)
         end, dps)
@@ -140,9 +131,18 @@ function Render:createEvents()
             self:doNohAndStop(true)
         end, dps)
     end
-    cmd('aug END')
+    api.nvim_create_autocmd(events, {
+        group = gid,
+        callback = function(ev)
+            event:emit(ev.event)
+        end
+    })
+    event:on('CursorMoved', self.throttledRefresh, dps)
+    event:on('TermEnter', function()
+        self.clear(true, 0, true)
+    end, dps)
     return disposable:create(function()
-        cmd('au! HlSearchLensRender')
+        api.nvim_del_augroup_by_id(gid)
         disposable.disposeAll(dps)
     end)
 end
@@ -430,7 +430,6 @@ function Render:initialize(namespace)
         self.initialized = false
         self.throttledRefresh:cancel()
         self.throttledRefresh = nil
-        cmd('aug! HlSearchLensRender')
     end))
     table.insert(self.disposables, extmark:initialize(namespace, config.virt_priority))
     table.insert(self.disposables, floatwin:initialize(config.float_shadow_blend))

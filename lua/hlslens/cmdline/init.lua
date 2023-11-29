@@ -3,13 +3,13 @@ local cmd = vim.cmd
 local api = vim.api
 local uv = vim.loop
 
-local utils      = require('hlslens.utils')
-local render     = require('hlslens.render')
-local config     = require('hlslens.config')
-local event      = require('hlslens.lib.event')
-local parser     = require('hlslens.cmdline.parser')
-local fold       = require('hlslens.cmdline.fold')
-local debounce   = require('hlslens.lib.debounce')
+local utils = require('hlslens.utils')
+local render = require('hlslens.render')
+local config = require('hlslens.config')
+local event = require('hlslens.lib.event')
+local parser = require('hlslens.cmdline.parser')
+local fold = require('hlslens.cmdline.fold')
+local debounce = require('hlslens.lib.debounce')
 local disposable = require('hlslens.lib.disposable')
 
 ---@class HlslensCmdLine
@@ -324,15 +324,14 @@ function CmdLine:initialize(ns)
         self.debouncedSearch:cancel()
         self.debouncedSearch = nil
     end))
-    event:on('CmdlineEnter', function(e)
-        self:attach(e.cmdtype)
+    event:on('CmdlineEnter', function(cmdType)
+        self:attach(cmdType)
     end, self.disposables)
-    event:on('CmdlineLeave', function(e)
-        local typ, abort = e.cmdtype, e.abort
-        self:detach(typ, abort)
+    event:on('CmdlineLeave', function(cmdType, abort)
+        self:detach(cmdType, abort)
         render:start(true)
     end, self.disposables)
-    event:on('CmdlineChanged', function()
+    event:on('CmdlineChanged', function(cmdType)
         self:onChanged()
     end, self.disposables)
     self.initialized = true

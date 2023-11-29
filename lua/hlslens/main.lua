@@ -1,8 +1,8 @@
 local M = {}
 local api = vim.api
 local fn = vim.fn
-local cmd = vim.cmd
 
+local event = require('hlslens.lib.event')
 local cmdl = require('hlslens.cmdline')
 local render = require('hlslens.render')
 local position = require('hlslens.position')
@@ -14,28 +14,33 @@ local enabled = false
 local disposables = {}
 
 local function createCommand()
-    cmd([[
-        com! HlSearchLensToggle lua require('hlslens').toggle()
-        com! HlSearchLensEnable lua require('hlslens').enable()
-        com! HlSearchLensDisable lua require('hlslens').disable()
-    ]])
+    api.nvim_create_user_command('HlSearchLensToggle', function()
+        return require('hlslens').toggle()
+    end, {})
+    api.nvim_create_user_command('HlSearchLensEnable', function()
+        return require('hlslens').enable()
+    end, {})
+    api.nvim_create_user_command('HlSearchLensDisable', function()
+        return require('hlslens').disable()
+    end, {})
 end
 
 local function createEvents()
-    cmd([[
-        aug HlSearchLens
-            au!
-            au CmdlineEnter /,\?,: lua require('hlslens.lib.event'):emit('CmdlineEnter', vim.v.event)
-            au CmdlineLeave /,\?,: lua require('hlslens.lib.event'):emit('CmdlineLeave', vim.v.event)
-            au CmdlineChanged /,\?,: lua require('hlslens.lib.event'):emit('CmdlineChanged')
-            au ColorScheme * lua require('hlslens.lib.event'):emit('ColorScheme')
-        aug END
-    ]])
+    local gid = api.nvim_create_augroup('HlSearchLens', {})
+    api.nvim_create_autocmd({'CmdlineEnter', 'CmdlineLeave', 'CmdlineChanged'}, {
+        pattern = {'/', '?', ':'},
+        group = gid,
+        callback = function(ev)
+            local e, cchar = ev.event, ev.file
+            if e == 'CmdlineLeave' then
+                event:emit(e, cchar, vim.v.event.abort)
+            else
+                event:emit(e, cchar)
+            end
+        end
+    })
     return disposable:create(function()
-        cmd([[
-            au! HlSearchLens
-            aug! HlSearchLens
-        ]])
+        api.nvim_del_augroup_by_id(gid)
     end)
 end
 
