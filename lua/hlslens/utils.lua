@@ -186,7 +186,10 @@ end
 ---@param skip? any
 ---@return number[]
 function M.searchPosSafely(pattern, flags, stopline, timeout, skip)
-    local ok, res = pcall(fn.searchpos, pattern, flags, stopline, timeout, skip)
+    -- TODO
+    -- Pass `nil` to pcall with Neovim function make serialization issue, need `unpack` as a
+    -- helper to prevent `nil` to pass.
+    local ok, res = pcall(fn.searchpos, pattern, unpack({flags, stopline, timeout, skip}))
     return ok and res or {0, 0}
 end
 
