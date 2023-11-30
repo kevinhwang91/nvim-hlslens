@@ -161,6 +161,7 @@ function CmdLine:attach(typ)
     self:resetState()
     local cursor = api.nvim_win_get_cursor(0)
     self.parser = parser:new(typ, cursor)
+    self.range = nil
     self.searchStart = cursor
     self.matchStart = cursor
     self.matchEnd = cursor
