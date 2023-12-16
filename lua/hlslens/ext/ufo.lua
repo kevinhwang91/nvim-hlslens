@@ -24,8 +24,7 @@ function Ufo:listVirtTextInfos(bufnr, row, endRow)
     for _, mark in ipairs(marks) do
         local details = mark[4]
         local sr, er = mark[2], details.end_row
-        if sr and er and (sr < lastRow or er > lastEndRow) and
-            details.virt_text_pos == 'win_col' and details.virt_text_win_col == 0 then
+        if sr and er and (sr < lastRow or er > lastEndRow) then
             table.insert(res, {
                 row = sr,
                 endRow = er,
@@ -145,6 +144,11 @@ function Ufo:initialize(module)
             if len > 0 then
                 local hlsTextInfo = curRow <= s and hlsTextInfos[1] or hlsTextInfos[len]
                 local hlsVirtText = hlsTextInfo.virtText
+                -- replace `Ignore` highlight with `UfoFoldedBg`
+                hlsVirtText[1][2] = 'UfoFoldedBg'
+                if not virtText then
+                    virtText = require('ufo.decorator'):getVirtTextAndCloseFold(winid, s + 1, e + 1, false)
+                end
                 local width = self:virtTextWidth(virtText)
                 local hlsVirtTextWidth = self:virtTextWidth(hlsVirtText)
                 if width + hlsVirtTextWidth >= lineWidth then
