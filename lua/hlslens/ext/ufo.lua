@@ -124,7 +124,7 @@ function Ufo:initialize(module)
     end))
     event:on('LensUpdated', function(bufnr, pattern, changedtick, sList, eList, idx, rIdx, region)
         local winid = fn.bufwinid(bufnr)
-        if #sList == 0 or not utils.isWinValid(winid) then
+        if #sList == 0 or not utils.isWinValid(winid) or not vim.wo[winid].foldenable then
             return
         end
         self:decoratePeekWindow(winid, sList, eList, idx)
@@ -147,7 +147,7 @@ function Ufo:initialize(module)
                 -- replace `Ignore` highlight with `UfoFoldedBg`
                 hlsVirtText[1][2] = 'UfoFoldedBg'
                 if not virtText then
-                    virtText = require('ufo.decorator'):getVirtTextAndCloseFold(winid, s + 1, e + 1, false)
+                    virtText = require('ufo.decorator'):getVirtTextAndCloseFold(winid, s + 1)
                 end
                 local width = self:virtTextWidth(virtText)
                 local hlsVirtTextWidth = self:virtTextWidth(hlsVirtText)
