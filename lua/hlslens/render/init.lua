@@ -201,10 +201,10 @@ function Render:addLens(bufnr, startPosList, nearest, idx, relIdx)
         else
             text = ('[%d/%d]'):format(idx, cnt)
         end
-        chunks = {{' ', 'Ignore'}, {text, 'HlSearchLensNear'}}
+        chunks = {{' '}, {text, 'HlSearchLensNear'}}
     else
         text = ('[%s %d]'):format(indicator, idx)
-        chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
+        chunks = {{' '}, {text, 'HlSearchLens'}}
     end
     self.setVirt(bufnr, lnum - 1, col - 1, chunks, nearest)
 end

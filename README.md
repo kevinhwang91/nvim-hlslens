@@ -226,10 +226,10 @@ require('hlslens').setup({
             else
                 text = ('[%d/%d]'):format(idx, cnt)
             end
-            chunks = {{' ', 'Ignore'}, {text, 'HlSearchLensNear'}}
+            chunks = {{' '}, {text, 'HlSearchLensNear'}}
         else
             text = ('[%s %d]'):format(indicator, idx)
-            chunks = {{' ', 'Ignore'}, {text, 'HlSearchLens'}}
+            chunks = {{' '}, {text, 'HlSearchLens'}}
         end
         render.setVirt(0, lnum - 1, col - 1, chunks, nearest)
     end
@@ -276,9 +276,8 @@ local function nN(char)
         -- ufo will restore previous buffer keymaps before closing preview window
         -- Type <CR> will switch to preview window and fire `trace` action
         vim.keymap.set('n', '<CR>', function()
-            local keyCodes = api.nvim_replace_termcodes('<Tab><CR>', true, false, true)
-            api.nvim_feedkeys(keyCodes, 'im', false)
-        end, {buffer = true})
+            return '<Tab><CR>'
+        end, {buffer = true, remap = true, expr = true})
     end
 end
 
