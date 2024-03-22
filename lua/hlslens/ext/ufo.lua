@@ -60,7 +60,7 @@ function Ufo:nN(char, ...)
     local ok, msg = pcall(cmd, 'norm!' .. vim.v.count1 .. char)
     if not ok then
         ---@diagnostic disable-next-line: need-check-nil
-        api.nvim_echo({{msg:match(':(.*)$'), 'ErrorMsg'}}, false, {})
+        api.nvim_echo({{msg:match('(E%d+:.*)$'), 'ErrorMsg'}}, false, {})
         return ok, winid
     end
     if self.module then
