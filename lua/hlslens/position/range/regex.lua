@@ -9,12 +9,12 @@ function M.valid()
     return true
 end
 
-local function doBuild(pat)
+local function doBuild(bufnr, pat)
     local startPosList, endPosList = {}, {}
     local cnt = 0
     local regm = wffi.buildRegmatchT(pat)
     if regm then
-        for lnum = 1, api.nvim_buf_line_count(0) do
+        for lnum = 1, api.nvim_buf_line_count(bufnr) do
             local col = 0
             while wffi.vimRegExecMulti(regm, lnum, col) > 0 do
                 cnt = cnt + 1
@@ -40,8 +40,8 @@ local function doBuild(pat)
     return startPosList, endPosList
 end
 
-function M.buildList(pat)
-    return doBuild(pat)
+function M.buildList(bufnr, pat)
+    return doBuild(bufnr, pat)
 end
 
 function M.initialize(l)

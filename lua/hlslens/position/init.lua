@@ -68,7 +68,7 @@ function Position:compute(bufnr)
     end
 
     o = self:new(bufnr, changedtick, pattern)
-    o.sList, o.eList = self.rangeModule.buildList(pattern)
+    o.sList, o.eList = self.rangeModule.buildList(bufnr, pattern)
 
     local l = {startPos = o.sList, endPos = o.eList}
     -- TODO

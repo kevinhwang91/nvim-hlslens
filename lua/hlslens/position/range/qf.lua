@@ -50,9 +50,9 @@ local function keepMagicOpt(pattern)
     return pattern
 end
 
-function M.buildList(pat)
+function M.buildList(bufnr, pat)
     local tf
-    if api.nvim_buf_get_name(0) == '' then
+    if api.nvim_buf_get_name(bufnr) == '' then
         tf = tname
         cmd('f ' .. tf)
     end
