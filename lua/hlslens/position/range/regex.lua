@@ -4,6 +4,7 @@ local api = vim.api
 local limit
 
 local wffi = require('hlslens.wffi')
+local utils = require('hlslens.utils')
 
 function M.valid()
     return true
@@ -14,9 +15,16 @@ local function doBuild(bufnr, pat)
     local cnt = 0
     local regm = wffi.buildRegmatchT(pat)
     if regm then
+        local winid = utils.getWinByBuf(bufnr)
+        if winid == -1 then
+            return startPosList, endPosList
+        end
+
+        local buf = wffi.getBuf(bufnr)
+        local wp = wffi.getWin(winid)
         for lnum = 1, api.nvim_buf_line_count(bufnr) do
             local col = 0
-            while wffi.vimRegExecMulti(regm, lnum, col) > 0 do
+            while wffi.vimRegExecMulti(buf, wp, regm, lnum, col) > 0 do
                 cnt = cnt + 1
                 if cnt > limit then
                     startPosList, endPosList = {}, {}
@@ -30,7 +38,7 @@ local function doBuild(bufnr, pat)
                     break
                 end
                 col = endPos.col + (col == endPos.col and 1 or 0)
-                if col > wffi.mlGetBufLen(lnum) then
+                if col > wffi.mlGetBufLen(buf, lnum) then
                     break
                 end
             end

@@ -193,4 +193,32 @@ function M.searchPosSafely(pattern, flags, stopline, timeout, skip)
     return ok and res or {0, 0}
 end
 
+---
+---@param bufnr number
+---@return number, number[]?
+function M.getWinByBuf(bufnr)
+    local curBufnr
+    if not bufnr then
+        curBufnr = api.nvim_get_current_buf()
+        bufnr = curBufnr
+    end
+    local winids = {}
+    for _, winid in ipairs(api.nvim_list_wins()) do
+        if bufnr == api.nvim_win_get_buf(winid) then
+            table.insert(winids, winid)
+        end
+    end
+    if #winids == 0 then
+        return -1
+    elseif #winids == 1 then
+        return winids[1]
+    else
+        if not curBufnr then
+            curBufnr = api.nvim_get_current_buf()
+        end
+        local winid = curBufnr == bufnr and api.nvim_get_current_win() or winids[1]
+        return winid, winids
+    end
+end
+
 return M

@@ -9,18 +9,17 @@ local Cpattern
 local Cchar_u_VLA
 local Cregmmatch_T
 
-local function getCurWin()
+function M.getWin(winid)
     local err = ffi.new('Error')
-    return C.find_window_by_handle(0, err)
+    return C.find_window_by_handle(winid, err)
 end
 
-local function getCurBuf()
+function M.getBuf(bufnr)
     local err = ffi.new('Error')
-    return C.find_buffer_by_handle(0, err)
+    return C.find_buffer_by_handle(bufnr, err)
 end
 
-function M.mlGetBufLen(lnum)
-    local buf = getCurBuf()
+function M.mlGetBufLen(buf, lnum)
     local ml = C.ml_get_buf(buf, lnum, false)
     return tonumber(C.strlen(ml))
 end
@@ -49,9 +48,7 @@ function M.regmatchPos(regm)
         {lnum = tonumber(endPos.lnum), col = endPos.col}
 end
 
-function M.vimRegExecMulti(regm, lnum, col)
-    local wp = getCurWin()
-    local buf = getCurBuf()
+function M.vimRegExecMulti(buf, wp, regm, lnum, col)
     return tonumber(C.vim_regexec_multi(regm, wp, buf, lnum, col, nil, nil))
 end
 
