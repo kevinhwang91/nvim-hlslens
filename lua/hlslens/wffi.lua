@@ -19,11 +19,6 @@ function M.getBuf(bufnr)
     return C.find_buffer_by_handle(bufnr, err)
 end
 
-function M.mlGetBufLen(buf, lnum)
-    local ml = C.ml_get_buf(buf, lnum, false)
-    return tonumber(C.strlen(ml))
-end
-
 function M.buildRegmatchT(pat)
     -- https://luajit.org/ext_ffi_semantics.html#gc
     -- Cpat must be referenced, it will be used during `vim_regexec_multi`
@@ -112,15 +107,31 @@ local function init()
 
         regprog_T *vim_regcomp(char_u *expr_arg, int re_flags);
 
-        char_u *ml_get_buf(buf_T *buf, linenr_T lnum, bool will_change);
-
         int ignorecase(char_u *pat);
 
         long vim_regexec_multi(regmmatch_T *rmp, win_T *win, buf_T *buf, linenr_T lnum, colnr_T col,
             void *dummy_ptr, int *timed_out);
 
-        size_t strlen(const char *s);
     ]])
+
+    if utils.has10() then
+        -- https://github.com/neovim/neovim/commit/b465ede2c7a4fb39cf84682d645a3acd08631010
+        ffi.cdef([[colnr_T ml_get_buf_len(buf_T *buf, linenr_T lnum);]])
+
+        function M.mlGetBufLen(buf, lnum)
+            return tonumber(C.ml_get_buf_len(buf, lnum))
+        end
+    else
+        ffi.cdef([[
+            char_u *ml_get_buf(buf_T *buf, linenr_T lnum, bool will_change);
+            size_t strlen(const char *s);
+        ]])
+
+        function M.mlGetBufLen(buf, lnum)
+            local ml = C.ml_get_buf(buf, lnum, false)
+            return tonumber(C.strlen(ml))
+        end
+    end
 
 
     Cchar_u_VLA = ffi.typeof('char_u[?]')

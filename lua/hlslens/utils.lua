@@ -26,6 +26,17 @@ M.has09 = (function()
     end
 end)()
 
+---@return fun(): boolean
+M.has10 = (function()
+    local has10
+    return function()
+        if has10 == nil then
+            has10 = fn.has('nvim-0.10') == 1
+        end
+        return has10
+    end
+end)()
+
 ---
 ---@param winid number
 ---@return boolean
