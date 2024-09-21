@@ -420,7 +420,7 @@ function Render:initialize(namespace)
     self.nearestFloatWhen = config.nearest_float_when
     self.calmDown = config.calm_down
     self.throttledRefresh = throttle(function()
-        if self.status == START and self.throttledRefresh then
+        if self.status == START and self.throttledRefresh and vim.v.hlsearch == 1 then
             refreshCurrentBuf()
         end
         self.force = nil
