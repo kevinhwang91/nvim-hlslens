@@ -158,9 +158,9 @@ supports `<C-g>` and `<C-t>` to move to the next and previous match.
 ### Highlight
 
 ```vim
-hi default link HlSearchNear IncSearch
+hi default link HlSearchNear CurSearch
 hi default link HlSearchLens WildMenu
-hi default link HlSearchLensNear IncSearch
+hi default link HlSearchLensNear CurSearch
 ```
 
 1. HlSearchLensNear: highlight the nearest virtual text for the floating window

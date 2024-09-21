@@ -11,9 +11,10 @@ local Highlight = {
 local hlBlendGroups
 
 local function resetHighlightGroup()
+    local nearHl = utils.has08() and 'CurSearch' or 'IncSearch'
     api.nvim_set_hl(0, 'HlSearchNear', {
         default = true,
-        link = 'IncSearch'
+        link = nearHl
     })
     api.nvim_set_hl(0, 'HlSearchLens', {
         default = true,
@@ -21,7 +22,7 @@ local function resetHighlightGroup()
     })
     api.nvim_set_hl(0, 'HlSearchLensNear', {
         default = true,
-        link = 'IncSearch'
+        link = nearHl
     })
 
     hlBlendGroups = setmetatable({Ignore = 'Ignore'}, {
