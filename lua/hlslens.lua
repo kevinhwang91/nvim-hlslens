@@ -64,10 +64,6 @@ end
 function M.setup(opts, warnFlag)
     if not opts and warnFlag then
         vim.schedule(function()
-            if not initialized then
-                vim.notify([[nvim-hlslens need to invoke `require('hlslens').setup()` to boot!]],
-                           vim.log.levels.WARN)
-            end
             M.setup()
         end)
         return
