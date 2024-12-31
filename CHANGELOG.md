@@ -1,5 +1,40 @@
 # Changelog
 
+## [1.1.0] - 2024-12-31
+
+### Features
+
+#### Highlight
+
+- Link HlSearchNear to CurSearch instead (#54)
+
+### Bug Fixes
+
+#### WFFI
+
+- Use `ml_get_buf_len` directly (#70)
+- Pass bufnr to build regex
+
+#### Cmdline
+
+- Limit search range for substitute (#60)
+- Valid range for substitute (#60)
+- Clear range to keep position valid
+
+#### Render
+
+- Override `Normal` in floatwin
+- Nightly change `nvim_win_get_config` return val
+- Check `v:hlsearch` before refreshing (#63)
+- More compact padding highlight group
+
+#### Miscellaneous
+
+- Use `unpack` in utils to avoid serialization issue
+- Remove redundant hl group HlSearchFloat (#61)
+- Fix Ufo ext issue
+- [**breaking**] Remove warning about setup (#73)
+
 ## [1.0.0] - 2022-12-10
 
 ### Features
