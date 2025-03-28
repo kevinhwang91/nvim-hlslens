@@ -64,6 +64,9 @@ function FloatWin:open(winid, row, col, width)
         style = 'minimal',
         zindex = 150
     }
+    if vim.fn.has('nvim-0.11.0') == 1 then
+        conf.border = 'none'
+    end
     if utils.isWinValid(self.winid) then
         self.bufnr = api.nvim_win_get_buf(self.winid)
         api.nvim_win_set_config(self.winid, conf)
