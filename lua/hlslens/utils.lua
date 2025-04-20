@@ -107,14 +107,9 @@ function M.textOff(winid)
 end
 
 ---
----@param bufnr? number
 ---@return boolean
-function M.isCmdLineWin(bufnr)
-    local function isCmdWin()
-        return fn.bufname() == '[Command Line]'
-    end
-
-    return bufnr and api.nvim_buf_call(bufnr, isCmdWin) or isCmdWin()
+function M.isCmdLineWin()
+    return fn.getcmdwintype() ~= ''
 end
 
 ---

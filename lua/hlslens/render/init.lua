@@ -222,7 +222,7 @@ function Render.setVirt(bufnr, row, col, chunks, nearest)
     local when = self.nearestFloatWhen
     local exLnum, exCol = row + 1, col + 1
     if nearest and (when == 'auto' or when == 'always') then
-        if utils.isCmdLineWin(bufnr) then
+        if utils.isCmdLineWin() then
             extmark:setVirtText(bufnr, row, chunks)
         else
             local winid = fn.bufwinid(bufnr ~= 0 and bufnr or '')
