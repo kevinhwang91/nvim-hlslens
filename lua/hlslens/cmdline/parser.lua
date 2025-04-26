@@ -88,7 +88,7 @@ function CmdLineParser:doParse()
         if ok then
             if self.builtinCmds[parsed.cmd] then
                 self.name, self.range = parsed.cmd, parsed.range
-                if vim.tbl_isempty(self.range) then
+                if self.range == nil or vim.tbl_isempty(self.range) then
                     if self:isSubstitute() then
                         local lnum = self.originCursor[1]
                         self.range = {lnum, lnum}
