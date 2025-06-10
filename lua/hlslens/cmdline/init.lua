@@ -241,14 +241,17 @@ function CmdLine:detach(typ, abort)
     end
     self:toggleHlSearch(true)
     self.attached = false
-    self.parser = nil
-    self.hrtime = nil
     vim.on_key(nil, self.ns)
-    if self.fold then
-        if abort then
+    if abort then
+        if self.fold then
             self.fold:undo()
         end
+        if self.isSubstitute then
+            api.nvim_win_set_cursor(0, self.parser.originCursor)
+        end
     end
+    self.hrtime = nil
+    self.parser = nil
     self.fold = nil
     if self.isVisualArea then
         render:clearVisualArea()
