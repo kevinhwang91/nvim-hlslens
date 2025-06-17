@@ -40,7 +40,7 @@ function FloatWin.getConfig(winid)
 end
 
 local function borderHasBottomLine(border)
-    if border == nil then
+    if border == nil or border == 'none' then
         return false
     end
 
