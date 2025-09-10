@@ -39,12 +39,12 @@ end)()
 
 ---@return fun(): boolean
 M.has11 = (function()
-    local has10
+    local has11
     return function()
-        if has10 == nil then
-            has10 = fn.has('nvim-0.10') == 1
+        if has11 == nil then
+            has11 = fn.has('nvim-0.11') == 1
         end
-        return has10
+        return has11
     end
 end)()
 
