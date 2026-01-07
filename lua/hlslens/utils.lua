@@ -49,8 +49,10 @@ M.has11 = (function()
 end)()
 
 function M.validate(name, val, validator, opt)
-    return M.has11() and vim.validate(name, val, validator, opt) or
-        vim.validate({name = {val, validator, opt}})
+    if M.has11() then
+        return vim.validate(name, val, validator, opt)
+    end
+    return vim.validate({name = {val, validator, opt}})
 end
 
 ---
