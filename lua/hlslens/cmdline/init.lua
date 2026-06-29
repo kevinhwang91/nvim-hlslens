@@ -73,7 +73,9 @@ end
 ---@param pattern string
 ---@return table|nil
 function CmdLine:searchRange(pattern)
-    api.nvim_win_set_cursor(0, self.searchStart)
+    if not pcall(api.nvim_win_set_cursor, 0, self.searchStart) then
+        return
+    end
     local flag = self.isSubstitute and 'c' or (self.type == '?' and 'b' or '')
     if self.range then
         flag = flag .. 'n'
@@ -112,7 +114,9 @@ end
 function CmdLine:incSearchPos(forward, pattern)
     local pos
     local cursor = self.matchEnd
-    api.nvim_win_set_cursor(0, cursor)
+    if not pcall(api.nvim_win_set_cursor, 0, cursor) then
+        return
+    end
     if forward then
         pos = utils.searchPosSafely(pattern, '')
         self.currentIdx = self.currentIdx == self.total and 1 or self.currentIdx + 1
