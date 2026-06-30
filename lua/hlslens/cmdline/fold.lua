@@ -30,7 +30,7 @@ end
 function IncSearchFold:undo()
     while #self.undoLnums > 0 do
         local l = table.remove(self.undoLnums)
-        cmd(l .. 'foldclose')
+        pcall(cmd, l .. 'foldclose')
     end
 end
 
